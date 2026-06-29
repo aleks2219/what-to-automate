@@ -7,6 +7,19 @@ import {
 } from '@/lib/automation';
 import { AssessmentInput } from '@/lib/automation';
 
+export interface BudgetBreakdown {
+  tooling: string; // e.g., "$25/mo"
+  implementation: string; // e.g., "$8K one-time"
+  ongoing: string; // e.g., "$500/yr maintenance"
+  totalYear1: string; // e.g., "$11.3K"
+}
+
+export interface IndustryBenchmarks {
+  maturity: string; // e.g., "Mid-maturity — typical for your industry/size"
+  commonPatterns: string[]; // 2-3 common automation patterns in this industry
+  averageRoi: string; // e.g., "Companies like yours typically see 180% ROI over 3 years"
+}
+
 export interface ExtractionResult {
   // Extracted process fields
   processName: string | null;
@@ -29,6 +42,15 @@ export interface ExtractionResult {
   adjacentProcesses: string[];
   confidence: 'high' | 'medium' | 'low';
   extractionNotes: string;
+
+  // NEW: Action plan fields (v2)
+  recommendedToolIds: string[]; // tool IDs from tools-db.ts
+  toolRationale: string; // why these tools fit
+  caseStudyIds: string[]; // case study IDs from case-studies-db.ts
+  templateIds: string[]; // template IDs from workflow-templates-db.ts
+  firstStep: string; // concrete action the user can take today
+  budgetBreakdown: BudgetBreakdown;
+  industryBenchmarks: IndustryBenchmarks;
 }
 
 // Helper to merge extraction result into AssessmentInput with sensible defaults

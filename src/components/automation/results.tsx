@@ -29,10 +29,16 @@ import {
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { AssessmentInput, AssessmentResult, formatCurrency, formatMonths, formatNumber, APPROACHES } from '@/lib/automation';
+import { ExtractionResult } from '@/lib/extraction-types';
+import { ActionPlan } from '@/components/automation/action-plan';
+import { CaseStudiesSection } from '@/components/automation/case-studies-section';
+import { TemplatesSection } from '@/components/automation/templates-section';
+import { EmailCapture } from '@/components/automation/email-capture';
 
 interface ResultsProps {
   input: AssessmentInput;
   result: AssessmentResult;
+  extraction?: ExtractionResult | null;
   onRestart: () => void;
 }
 
@@ -63,7 +69,7 @@ const VERDICT_STYLES = {
   },
 } as const;
 
-export function Results({ input, result, onRestart }: ResultsProps) {
+export function Results({ input, result, extraction, onRestart }: ResultsProps) {
   const styles = VERDICT_STYLES[result.verdict];
   const VerdictIcon = styles.icon;
   const verdictLabel =
@@ -359,6 +365,34 @@ export function Results({ input, result, onRestart }: ResultsProps) {
             <p className="text-stone-700 leading-relaxed">{result.recommendation}</p>
           </CardContent>
         </Card>
+
+        {/* Action Plan — only render when extraction data is available (AI-assisted flow) */}
+        {extraction && (extraction.recommendedToolIds.length > 0 || extraction.firstStep) && (
+          <div className="space-y-6">
+            <div className="pt-6 border-t border-stone-200">
+              <h2 className="text-xl font-semibold text-stone-900 mb-1">Your action plan</h2>
+              <p className="text-sm text-stone-600">
+                Concrete next steps — specific tools, real case studies, and what to do today.
+              </p>
+            </div>
+            <ActionPlan
+              recommendedToolIds={extraction.recommendedToolIds}
+              toolRationale={extraction.toolRationale}
+              firstStep={extraction.firstStep}
+              budgetBreakdown={extraction.budgetBreakdown}
+              industryBenchmarks={extraction.industryBenchmarks}
+            />
+            <CaseStudiesSection caseStudyIds={extraction.caseStudyIds} />
+            <TemplatesSection templateIds={extraction.templateIds} />
+          </div>
+        )}
+
+        {/* Email capture — soft gate for PDF + playbook */}
+        <EmailCapture
+          processName={input.processName}
+          verdict={verdictLabel}
+          annualSavings={formatCurrency(result.annualCostSavings)}
+        />
 
         {/* Assessment summary footer */}
         <div className="mt-10 pt-6 border-t border-stone-200 print:mt-6">

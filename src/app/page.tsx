@@ -92,7 +92,14 @@ export default function Home() {
   }
 
   if (view === 'results' && input && result) {
-    return <Results input={input} result={result} onRestart={handleRestart} />;
+    return (
+      <Results
+        input={input}
+        result={result}
+        extraction={extraction}
+        onRestart={handleRestart}
+      />
+    );
   }
 
   return <Landing onStart={handleQuickStart} onManual={handleManualStart} />;

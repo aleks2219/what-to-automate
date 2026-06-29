@@ -6,8 +6,24 @@ import {
 } from '@/lib/automation';
 import { ExtractionResult } from '@/lib/extraction-types';
 import { groqChatCompletion } from '@/lib/llm';
+import { TOOLS } from '@/lib/tools-db';
+import { CASE_STUDIES } from '@/lib/case-studies-db';
+import { WORKFLOW_TEMPLATES } from '@/lib/workflow-templates-db';
 
 export type { ExtractionResult };
+
+// Build a catalog string the AI uses to reference tools, case studies, and templates
+const TOOL_CATALOG = TOOLS.map(
+  (t) => `- id: "${t.id}" | ${t.name} | category: ${t.category} | best for: ${t.bestFor} | pricing: ${t.startingPrice}`
+).join('\n');
+
+const CASE_STUDY_CATALOG = CASE_STUDIES.map(
+  (c) => `- id: "${c.id}" | ${c.title} | industry: ${c.industry} | process: ${c.processAutomated} | tools: ${c.toolsUsed.join(', ')} | tags: ${c.tags.join(', ')}`
+).join('\n');
+
+const TEMPLATE_CATALOG = WORKFLOW_TEMPLATES.map(
+  (t) => `- id: "${t.id}" | ${t.title} | category: ${t.category} | tools: ${t.toolsNeeded.join(', ')} | difficulty: ${t.difficulty}/5 | time: ${t.timeToBuild}`
+).join('\n');
 
 const SYSTEM_PROMPT = `You are a senior operations consultant and automation strategist. Your job is to take unstructured input from a user — which might be a one-sentence description, a pasted SOP doc, a Slack thread, meeting notes, or a transcribed voice memo — and extract structured data for an automation assessment tool.
 
@@ -31,7 +47,24 @@ Your output MUST be valid JSON with this exact schema:
   "redFlags": ["array of strings — any concerns about the process (e.g., 'sounds regulated — verify audit trail requirements', 'no clear owner mentioned', 'process seems to involve multiple approval bottlenecks')"],
   "adjacentProcesses": ["array of strings — other processes at the same company that might benefit from automation, based on what was described. Max 3 suggestions."],
   "confidence": "high | medium | low — overall confidence in the extraction. high = user gave clear, detailed input. medium = some inference required. low = input was vague or sparse.",
-  "extractionNotes": "string — 1-2 sentences for the user explaining what you extracted and any major gaps they should fill in."
+  "extractionNotes": "string — 1-2 sentences for the user explaining what you extracted and any major gaps they should fill in.",
+
+  "recommendedToolIds": ["array of 2-3 tool IDs from the catalog below. Pick tools that fit the approach + process. Always prefer tools the user's team can actually adopt (consider difficulty)."],
+  "toolRationale": "string — 2-3 sentences explaining why you picked these specific tools. Reference the process characteristics that drove the choice.",
+  "caseStudyIds": ["array of 1-2 case study IDs from the catalog below that match the process most closely. Pick by similarity of process, industry, or approach."],
+  "templateIds": ["array of 1-2 template IDs from the catalog below that the user could use as a starting point. Pick by category match."],
+  "firstStep": "string — one concrete action the user can take TODAY in under 30 minutes. Be specific (e.g., 'Sign up for Make.com free plan, connect your email, and build a 2-step flow that triggers when an invoice arrives'). Include the tool name and the specific action.",
+  "budgetBreakdown": {
+    "tooling": "string — monthly or annual cost of recommended tools (e.g., '$25/mo for Make + Claude')",
+    "implementation": "string — one-time build cost (e.g., '$8K for a consultant or 40 hours internal')",
+    "ongoing": "string — annual maintenance cost (e.g., '$500/yr for updates and monitoring')",
+    "totalYear1": "string — total cost in year 1 (e.g., '$11.3K total')"
+  },
+  "industryBenchmarks": {
+    "maturity": "string — 1 sentence on where this company sits vs typical automation maturity for their industry/size",
+    "commonPatterns": ["array of 2-3 strings — common automation patterns in this industry, based on the process described"],
+    "averageRoi": "string — 1 sentence on typical ROI for similar automation projects in this industry"
+  }
 }
 
 CRITICAL RULES:
@@ -41,7 +74,21 @@ CRITICAL RULES:
 4. For hourlyCost, if the user mentions salaries, divide by 2000 hours/year. If they mention 'specialist' or 'finance', assume $75-150/hr.
 5. For automationPercentage, default to 70 if process seems well-defined, 50 if it involves significant judgment or unstructured data.
 6. For approach: if user mentions 'documents', 'emails', 'unstructured text', 'classify', 'extract', 'summarize' -> recommend 'ai'. If 'legacy system', 'mainframe', 'no API', 'SAP', 'Oracle EBS' -> 'rpa'. If 'between tools', 'Slack to', 'sync', 'connect', 'Zapier' -> 'integration'. If 'core system', 'complex logic', 'customer-facing product', 'scale to thousands' -> 'custom'.
-7. Adjacent processes should be plausible given the context, not generic. If they describe invoice processing, suggest 'expense approval' and 'vendor onboarding', not 'everything in finance'.`;
+7. Adjacent processes should be plausible given the context, not generic. If they describe invoice processing, suggest 'expense approval' and 'vendor onboarding', not 'everything in finance'.
+8. For recommendedToolIds: pick 2-3 tools. If approach is 'integration', prefer make/zapier/n8n. If 'ai', pair an LLM (claude-api/openai-api) with an integration tool. If 'rpa', pick from power-automate/uipath/automation-anywhere. If 'custom', pick from retool/bubble/xano/supabase/airtable + possibly an LLM.
+9. For caseStudyIds: only pick IDs that exist in the catalog. If none match well, return an empty array.
+10. For templateIds: only pick IDs that exist in the catalog. If none match, return an empty array.
+11. For firstStep: be concrete and specific. Don't say 'evaluate tools' — say 'Sign up for Make.com free plan and connect your email'.
+12. For budgetBreakdown: provide realistic estimates. If implementation is internal, estimate hours × loaded hourly rate.
+
+=== TOOL CATALOG ===
+${TOOL_CATALOG}
+
+=== CASE STUDY CATALOG ===
+${CASE_STUDY_CATALOG}
+
+=== WORKFLOW TEMPLATE CATALOG ===
+${TEMPLATE_CATALOG}`;
 
 export async function POST(req: NextRequest) {
   try {
@@ -77,7 +124,7 @@ export async function POST(req: NextRequest) {
           content: `${modeHint}\n\n--- USER INPUT ---\n${text.trim()}`,
         },
       ],
-      { json: true, temperature: 0.2, maxTokens: 2000 }
+      { json: true, temperature: 0.3, maxTokens: 3000 }
     );
 
     if (!raw || !raw.trim()) {
@@ -87,7 +134,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Strip markdown fences if present (Groq's JSON mode usually avoids this, but be safe)
+    // Strip markdown fences if present
     let jsonText = raw.trim();
     if (jsonText.startsWith('```')) {
       jsonText = jsonText.replace(/^```(?:json)?\s*\n?/, '').replace(/\n?```\s*$/, '');
@@ -131,6 +178,40 @@ export async function POST(req: NextRequest) {
     }
     if (parsed.errorTolerance !== null) {
       parsed.errorTolerance = Math.max(1, Math.min(5, Math.round(parsed.errorTolerance)));
+    }
+
+    // Validate tool/case-study/template IDs against catalogs
+    const validToolIds = new Set(TOOLS.map((t) => t.id));
+    const validCaseStudyIds = new Set(CASE_STUDIES.map((c) => c.id));
+    const validTemplateIds = new Set(WORKFLOW_TEMPLATES.map((t) => t.id));
+
+    parsed.recommendedToolIds = (parsed.recommendedToolIds || []).filter((id) =>
+      validToolIds.has(id)
+    );
+    parsed.caseStudyIds = (parsed.caseStudyIds || []).filter((id) =>
+      validCaseStudyIds.has(id)
+    );
+    parsed.templateIds = (parsed.templateIds || []).filter((id) =>
+      validTemplateIds.has(id)
+    );
+
+    // Ensure required new fields have defaults
+    if (!parsed.toolRationale) parsed.toolRationale = '';
+    if (!parsed.firstStep) parsed.firstStep = '';
+    if (!parsed.budgetBreakdown) {
+      parsed.budgetBreakdown = {
+        tooling: '',
+        implementation: '',
+        ongoing: '',
+        totalYear1: '',
+      };
+    }
+    if (!parsed.industryBenchmarks) {
+      parsed.industryBenchmarks = {
+        maturity: '',
+        commonPatterns: [],
+        averageRoi: '',
+      };
     }
 
     return NextResponse.json(parsed);
