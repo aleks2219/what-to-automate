@@ -8,6 +8,7 @@ import { QuickInput } from '@/components/automation/quick-input';
 import { ConfirmExtracted } from '@/components/automation/confirm-extracted';
 import { SwipeDeck } from '@/components/automation/swipe-deck';
 import { MatchResults } from '@/components/automation/match-results';
+import { ToolHub } from '@/components/tool-engine/tool-hub';
 import {
   AssessmentInput,
   AssessmentResult,
@@ -18,6 +19,7 @@ import { ToolMatch } from '@/app/api/match-deck/route';
 import { Tool } from '@/lib/tools-db';
 
 type View =
+  | 'hub'
   | 'landing'
   | 'quick-input'
   | 'confirm'
@@ -27,7 +29,7 @@ type View =
   | 'match-results';
 
 export default function Home() {
-  const [view, setView] = useState<View>('landing');
+  const [view, setView] = useState<View>('hub');
   const [input, setInput] = useState<AssessmentInput | null>(null);
   const [result, setResult] = useState<AssessmentResult | null>(null);
   const [extraction, setExtraction] = useState<ExtractionResult | null>(null);
@@ -82,13 +84,17 @@ export default function Home() {
   };
 
   const handleRestart = () => {
-    setView('landing');
+    setView('hub');
     setInput(null);
     setResult(null);
     setExtraction(null);
     setOriginalText('');
     setMatchedTools([]);
     setPassedTools([]);
+  };
+
+  const handleAutoScore = () => {
+    setView('landing');
   };
 
   if (view === 'quick-input') {
@@ -146,6 +152,10 @@ export default function Home() {
         onBack={handleRestart}
       />
     );
+  }
+
+  if (view === 'hub') {
+    return <ToolHub onAutoScore={handleAutoScore} />;
   }
 
   return (
