@@ -46,6 +46,7 @@ export function SwipeDeck({ onComplete, onBack }: SwipeDeckProps) {
   const [whatToAutomate, setWhatToAutomate] = useState('');
   const [industry, setIndustry] = useState<Industry | ''>('');
   const [currentTools, setCurrentTools] = useState('');
+  const [companyWebsite, setCompanyWebsite] = useState('');
   const [error, setError] = useState<string | null>(null);
 
   // Deck state
@@ -69,6 +70,7 @@ export function SwipeDeck({ onComplete, onBack }: SwipeDeckProps) {
           whatToAutomate: whatToAutomate.trim(),
           industry: industry || undefined,
           currentTools: currentTools.trim() || undefined,
+          companyWebsite: companyWebsite.trim() || undefined,
         }),
       });
       if (!res.ok) {
@@ -202,6 +204,22 @@ export function SwipeDeck({ onComplete, onBack }: SwipeDeckProps) {
                   </div>
                 </div>
 
+                <div>
+                  <Label className="text-sm font-medium text-stone-900 mb-1.5 block">
+                    Company website <span className="text-stone-400 font-normal">(optional — we&apos;ll research it)</span>
+                  </Label>
+                  <Input
+                    type="url"
+                    value={companyWebsite}
+                    onChange={(e) => setCompanyWebsite(e.target.value)}
+                    placeholder="yourcompany.com"
+                    className="bg-white"
+                  />
+                  <div className="text-xs text-stone-400 mt-1">
+                    We&apos;ll fetch your site and tailor recommendations to your actual product + industry.
+                  </div>
+                </div>
+
                 {error && (
                   <div className="text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-md p-3">
                     {error}
@@ -237,7 +255,7 @@ export function SwipeDeck({ onComplete, onBack }: SwipeDeckProps) {
           Building your deck...
         </div>
         <div className="text-sm text-stone-500">
-          AI is finding the best AI tools for you.
+          {companyWebsite.trim() ? 'Researching your company + matching AI tools...' : 'AI is finding the best AI tools for you.'}
         </div>
       </div>
     );
