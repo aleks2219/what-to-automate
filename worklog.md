@@ -344,3 +344,45 @@ Stage Summary:
 - User needs to: (1) add 2 env vars on Vercel (MAILERLITE_API_KEY + MAILERLITE_GROUP_ID), (2) trigger redeploy, (3) test full v2 flow end-to-end.
 - Optional: user can create custom fields in MailerLite dashboard (Subscribers → Fields) named: autoscore_process, autoscore_verdict, autoscore_savings, signup_source. These will then be populated automatically and enable segmentation (e.g., "show me all AUTOMATE_NOW verdicts in finance industry").
 - After v2 verified working: post first tweet.
+
+---
+Task ID: 13
+Agent: main (Super Z)
+Task: Add Lido + restructure tool recommendations to favor end-to-end solutions over building blocks.
+
+Work Log:
+- User feedback: "add lido.app to the knowledge base" + "make the recommendations more inline with solutions built to do many of these things versus a recommendation of claude simply forces a user to still do all of the work"
+- Sharp insight: recommending "Claude API" as a solution is like recommending "buy a hammer" when someone asks how to build a house. Need to recommend tools where users CONFIGURE rather than BUILD.
+- Added 7 purpose-built solution tools to tools-db.ts:
+  - Lido: spreadsheet automation for finance/ops (upload-and-go effort)
+  - Clay: sales/revenue automation with built-in data enrichment (configure)
+  - Bardeen: browser extension for web task automation (configure)
+  - Nanonets: document AI pre-trained for invoices/receipts/etc (upload-and-go)
+  - Docparser: PDF extraction with visual parser builder (configure)
+  - Browse AI: web scraping without code (configure)
+  - Axiom.ai: browser automation via record-and-replay (build-visually)
+- Added 3 new fields to Tool interface:
+  - toolType: 'solution' or 'building-block'
+  - userEffort: 'upload-and-go' | 'configure' | 'build-visually' | 'write-code'
+  - whatYouDo: plain English description of what the user actually does
+- Backfilled all 22 existing tools with the new fields.
+- Marked Claude API + OpenAI API as toolType='building-block' with explicit warnings in their descriptions: "USE VIA MAKE/ZAPIER unless you have a dev team"
+- Rewrote AI prompt tool selection rules (rules 8-16 in extract/route.ts):
+  - Rule 9: NEVER recommend raw AI APIs as standalone solutions
+  - Rule 10: Priority order = purpose-built > integration-with-AI > integration > RPA > custom > APIs
+  - Rule 14: firstStep must reference the actual primary tool, be concrete
+  - Rule 16: toolRationale must explain what the user does, not abstract capabilities
+- Updated TOOL_CATALOG to include toolType, userEffort, whatYouDo — AI now has full context to make better choices.
+- Updated ToolCard UI:
+  - "What you do" is now the headline feature (was buried in pros/cons)
+  - User effort badge prominently shown: "Upload & go" (green) > "Configure" (blue) > "Build visually" (amber) > "Write code" (red)
+  - Building block tools visually distinguished with amber border + "Building block" badge
+  - Purpose-built tools get an emerald "Purpose-built" badge
+- Lint passes clean. Committed (a222b9b). Pushed to GitHub.
+
+Stage Summary:
+- v2.1 is on GitHub main (commit a222b9b).
+- Tool recommendations will now favor end-to-end solutions like Lido, Clay, Nanonets, Bardeen over raw APIs like Claude/OpenAI.
+- The "What you do" section in each tool card makes it immediately clear whether the user is uploading, configuring, building visually, or writing code.
+- BLOCKED ON USER: (1) add MAILERLITE_API_KEY + MAILERLITE_GROUP_ID env vars on Vercel, (2) trigger redeploy, (3) test full v2.1 flow.
+- Test with the finance invoice example: should now recommend Lido/Nanonets as primary tool (upload-and-go) instead of Make + Claude API.
