@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import ZAI from 'z-ai-web-dev-sdk';
+import { ensureZaiConfig } from '@/lib/zai-config';
 
 export async function POST(req: NextRequest) {
   try {
@@ -32,6 +33,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    ensureZaiConfig();
     const zai = await ZAI.create();
 
     const response = await zai.audio.asr.create({

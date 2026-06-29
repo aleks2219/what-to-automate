@@ -6,6 +6,7 @@ import {
   Performer,
 } from '@/lib/automation';
 import { ExtractionResult } from '@/lib/extraction-types';
+import { ensureZaiConfig } from '@/lib/zai-config';
 
 export type { ExtractionResult };
 
@@ -62,6 +63,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    ensureZaiConfig();
     const zai = await ZAI.create();
 
     const modeHint =
