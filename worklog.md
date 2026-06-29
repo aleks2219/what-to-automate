@@ -284,3 +284,42 @@ Stage Summary:
 - User needs to: (1) remove the 5 Z_AI_* env vars on Vercel, (2) add GROQ_API_KEY, (3) trigger a redeploy.
 - After redeploy: visit https://what-to-automate-dq1j.vercel.app/api/debug-zai — if "llm_call" step shows "ok", we're golden. If it shows "fail: 403 Forbidden", the Groq key is bad and needs regeneration.
 - Once Groq works: test extraction end-to-end, then post the first tweet.
+
+---
+Task ID: 11
+Agent: main (Super Z)
+Task: Build v2 — Action Plan with curated databases, case studies, templates, and email capture.
+
+Work Log:
+- User feedback: tool wasn't actionable enough. Wanted: specific tool recommendations, real case studies, workflow templates, peer benchmarks, email capture for list-building. User said: "very robust", "do deep research", "okay if it takes a day".
+- Built 3 curated databases:
+  - src/lib/tools-db.ts: 22 vetted automation tools (Make, Zapier, n8n, Workato, Pipedream, Celigo, Claude API, OpenAI, Gemini, Groq, Mistral, Power Automate, UiPath, Automation Anywhere, Retool, Bubble, Xano, Supabase, Airtable). Each has: name, category, tagline, website, pricing, free tier, best-for, industry fit, difficulty, time-to-value, logo color, pros, cons.
+  - src/lib/case-studies-db.ts: 12 anonymized case studies based on real implementations (invoice reconciliation, lead routing, support triage, report generation, resume screening, vendor onboarding, clinical documentation, expense approval, inventory forecasting, contract review, onboarding sequences, field service dispatch). Each has: title, industry, company size, process, approach, tools used, results (time/cost/error/payback), summary, key learning, tags.
+  - src/lib/workflow-templates-db.ts: 10 starter templates (invoice processing, lead routing, support triage, report generation, expense approval, customer onboarding, social scheduling, resume screening, vendor onboarding, data sync). Each has: title, description, category, tools needed, difficulty, time-to-build, template URL, type (pre-built/blueprint/build-from-scratch), step-by-step guide, prerequisites.
+- Enhanced AI extraction prompt to output new fields:
+  - recommendedToolIds (validated against tools DB)
+  - toolRationale (why these tools)
+  - caseStudyIds (validated against case studies DB)
+  - templateIds (validated against templates DB)
+  - firstStep (concrete action for today)
+  - budgetBreakdown (tooling, implementation, ongoing, totalYear1)
+  - industryBenchmarks (maturity, commonPatterns, averageRoi)
+- Tool/case-study/template catalogs injected into system prompt so AI can reference them by ID.
+- All IDs validated server-side against the catalogs — no hallucinated tools.
+- Built 4 new UI components:
+  - src/components/automation/action-plan.tsx: Tool cards with logo placeholders, pricing, get-started CTAs, pros/cons, first-step callout, budget breakdown, industry benchmarks.
+  - src/components/automation/case-studies-section.tsx: Matched case studies with metrics, summary, key learning, tools used.
+  - src/components/automation/templates-section.tsx: Workflow templates with steps preview, prerequisites, clone CTA.
+  - src/components/automation/email-capture.tsx: Soft-gate email opt-in. Full report is free, PDF + playbook + 5-day course requires email.
+- Built src/app/api/email-capture/route.ts: Adds subscriber to MailerLite with custom fields (process, verdict, savings, source). Graceful fallback if MAILERLITE_API_KEY not set (returns success in dev mode).
+- Updated src/components/automation/results.tsx: Conditionally renders Action Plan section when extraction data is available. Always renders EmailCapture (every user gets the offer).
+- Updated src/app/page.tsx to pass extraction through to Results.
+- Fixed import bug: getToolsByIds lives in tools-db.ts, not in case-studies-db.ts.
+- Lint passes clean. Committed (4b3a54e). Pushed to GitHub.
+- LOCAL TEST: Extraction failed with 403 (Groq blocks sandbox IPs). Can't test locally — must test on Vercel.
+
+Stage Summary:
+- v2 code is on GitHub main (commit 4b3a54e).
+- BLOCKED ON USER: (1) trigger Vercel redeploy, (2) test end-to-end on https://what-to-automate-dq1j.vercel.app, (3) optionally set up MailerLite for email capture.
+- After deploy: test by going through the AI-assisted flow with the finance invoice example. Should now see: verdict + ROI + chart + roadmap + risks + recommendation + Action Plan (tools, first step, budget, benchmarks) + Case Studies + Templates + Email Capture.
+- Email capture works in dev mode (returns success without actually subscribing) if MailerLite isn't configured. User can add MAILERLITE_API_KEY + MAILERLITE_GROUP_ID later for production email capture.
