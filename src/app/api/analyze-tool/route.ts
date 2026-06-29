@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { groqChatCompletion } from '@/lib/llm';
 import { getToolBySlug, ToolAnalysisResult } from '@/lib/tools-registry';
+import { BUILD_SCENARIOS } from '@/lib/build-vs-buy-db';
 
 // Generic AI analysis endpoint for the Tool Engine.
 // Takes: { slug, input, fields: { industry, teamSize, etc. }, companyWebsite }
@@ -66,7 +67,16 @@ RULES:
 3. Reference the user's specific situation.
 4. Keep actionItems under 30 minutes each.`;
 
-    const systemPrompt = `${tool.systemPrompt}\n\n${outputSchema}`;
+    // Inject knowledge base for build-vs-buy tool
+    let knowledgeBaseSection = '';
+    if (tool.slug === 'build-vs-buy') {
+      const kbText = BUILD_SCENARIOS.map((s) =>
+        `- Pattern: "${s.pattern}" | Category: ${s.category} | Build: ${s.buildHours.min}-${s.buildHours.max} hrs ($${s.buildCost.min.toLocaleString()}-$${s.buildCost.max.toLocaleString()}) | Maintenance: ${s.ongoingMaintenanceHrs} hrs/mo | Alternatives: ${s.saasAlternatives.map(a => `${a.name} (${a.startingPrice}, ${a.url})`).join('; ')}`
+      ).join('\n');
+      knowledgeBaseSection = `\n\n=== BUILD VS BUY KNOWLEDGE BASE (${BUILD_SCENARIOS.length} scenarios) ===\n${kbText}\n\nIf the user's description matches any pattern above, reference those specific alternatives with pricing. If no match, use your general knowledge of SaaS tools.`;
+    }
+
+    const systemPrompt = `${tool.systemPrompt}${knowledgeBaseSection}\n\n${outputSchema}`;
 
     // 5. Build user message
     const userMessage = `${fieldLines ? `--- CONTEXT ---\n${fieldLines}\n\n` : ''}--- USER INPUT ---\n${body.input.trim()}\n\nAnalyze this and provide your recommendation.`;
@@ -77,7 +87,7 @@ RULES:
         { role: 'system', content: systemPrompt },
         { role: 'user', content: userMessage },
       ],
-      { json: true, temperature: tool.temperature ?? 0.3, maxTokens: 2000 }
+      { json: true, temperature: tool.temperature ?? 0.3, maxTokens: tool.slug === 'build-vs-buy' ? 3000 : 2000 }
     );
 
     if (!raw || !raw.trim()) {

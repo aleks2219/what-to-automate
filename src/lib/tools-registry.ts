@@ -72,14 +72,14 @@ const autoscore: ToolConfig = {
 };
 
 // ============================================================
-// TOOL 2: Build vs. Buy (sample daily tool — proves the system)
+// TOOL 2: Build vs. Buy (knowledge-rich decision tool)
 // ============================================================
 const buildVsBuy: ToolConfig = {
   slug: 'build-vs-buy',
   name: 'Build vs. Buy',
   tagline: 'Should you build it yourself or buy an existing tool?',
   description:
-    'Describe what you need. Get an instant build-vs-buy analysis with cost comparison, time-to-value, maintenance burden, and a clear recommendation. No more endless debates with your team.',
+    'Describe what you need. Get an instant analysis with 3-year cost comparison, specific SaaS alternatives with pricing, build time estimates, maintenance burden, and a clear verdict. Covers 15+ common scenarios from auth to e-commerce.',
   category: 'decision',
   icon: 'Scale',
   iconColor: '#7C3AED',
@@ -88,18 +88,42 @@ const buildVsBuy: ToolConfig = {
   featured: true,
 
   inputLabel: 'What do you need to build or buy?',
-  inputPlaceholder: 'e.g., We need a customer portal where clients can view invoices, download reports, and submit support tickets...',
-  inputHint: 'Describe the feature/tool you\'re considering. The more detail, the better the analysis.',
+  inputPlaceholder: 'e.g., We need a customer portal where clients can view invoices, download reports, and submit support tickets. We use Salesforce and want it integrated.',
+  inputHint: 'Describe the feature/tool you\'re considering. Include integrations, scale, and any constraints. The more detail, the better the analysis.',
   additionalFields: [
     {
       id: 'teamSize',
       label: 'Team size',
       type: 'select',
       options: [
-        { value: 'solo', label: 'Just me' },
+        { value: 'solo', label: 'Just me / solo founder' },
         { value: 'small', label: '2-10 people' },
         { value: 'mid', label: '11-50 people' },
         { value: 'large', label: '50+ people' },
+      ],
+      helpText: 'Affects whether you have the capacity to maintain custom code.',
+    },
+    {
+      id: 'devCapacity',
+      label: 'Do you have developers?',
+      type: 'select',
+      options: [
+        { value: 'no-devs', label: 'No developers on team' },
+        { value: 'some-devs', label: '1-3 developers' },
+        { value: 'dev-team', label: '4+ developers' },
+        { value: 'outsourced', label: 'Outsource to agency/freelancer' },
+      ],
+      helpText: 'Critical factor — can you actually build and maintain this?',
+    },
+    {
+      id: 'timeline',
+      label: 'When do you need this live?',
+      type: 'select',
+      options: [
+        { value: 'asap', label: 'ASAP (days)' },
+        { value: 'weeks', label: '2-4 weeks' },
+        { value: 'months', label: '1-3 months' },
+        { value: 'flexible', label: 'No rush' },
       ],
     },
     {
@@ -107,23 +131,77 @@ const buildVsBuy: ToolConfig = {
       label: 'Monthly budget for this',
       type: 'text',
       placeholder: 'e.g., $500/mo, $5K one-time, unknown',
+      helpText: 'Include both what you can spend upfront + monthly.',
     },
   ],
 
-  systemPrompt: `You are a senior engineering leader and product strategist. The user is deciding whether to build a custom solution or buy an existing tool/SaaS.
+  systemPrompt: `You are a senior engineering leader and product strategist with 15+ years of experience making build-vs-buy decisions. You've seen every mistake: teams building auth from scratch (security nightmares), companies building CMSes instead of shipping product, startups building custom CRMs when HubSpot is free.
 
-Analyze their situation and output JSON with:
-- verdict: "high" if BUY, "medium" if HYBRID (buy + customize), "low" if BUILD
-- score: 0-100 (higher = more likely you should buy)
-- summary: 2-3 sentence executive summary
-- keyInsights: 3-5 key factors that drive the decision (cost, time, maintenance, competitive advantage, etc.)
-- recommendations: 2-4 specific recommendations (e.g., "Buy Tool X at $Y/mo" or "Build using Z stack, estimated W hours")
-- actionItems: 1-3 things to do today
-- risks: 1-3 risks of the recommended path
+The user is deciding whether to build a custom solution or buy an existing SaaS tool. Your job is to give them a definitive, specific, actionable recommendation.
+
+You have access to a KNOWLEDGE BASE of 15+ common build scenarios with:
+- Specific SaaS alternatives with real pricing
+- Build time estimates (hours + cost at $100/hr)
+- Ongoing maintenance burden (hours/month)
+- Key considerations for each scenario
+
+ANALYSIS FRAMEWORK — evaluate ALL of these factors:
+
+1. TOTAL COST OF OWNERSHIP (3-year):
+   - Build: upfront dev cost + 3 years of maintenance (hrs/month × $100 × 36) + infrastructure
+   - Buy: monthly subscription × 36 + setup + integration costs
+   - Include opportunity cost — what else could the team build?
+
+2. TIME TO VALUE:
+   - Build: dev time + testing + deployment (weeks to months)
+   - Buy: setup + configuration (hours to days)
+
+3. MAINTENANCE BURDEN:
+   - Build: bug fixes, security patches, feature updates, infrastructure monitoring
+   - Buy: vendor handles everything, but you depend on their roadmap
+
+4. COMPETITIVE ADVANTAGE:
+   - Is this a core differentiator? If yes, BUILD (it's your moat)
+   - Is this table stakes (auth, payments, email)? If yes, BUY (don't reinvent)
+
+5. TEAM EXPERTISE:
+   - Do they have developers who can build + maintain this?
+   - Is this the best use of their dev team's time?
+
+6. SCALABILITY:
+   - SaaS pricing often scales linearly with usage — at what volume does building become cheaper?
+   - Custom code scales with infrastructure costs only
+
+7. INTEGRATION NEEDS:
+   - How many existing systems need to connect?
+   - SaaS tools with good APIs may be easier to integrate than custom code
+
+8. DATA SENSITIVITY:
+   - Compliance requirements (HIPAA, SOC 2, GDPR)?
+   - Some data must stay in-house → build or self-host
+
+9. VENDOR LOCK-IN:
+   - How hard is it to switch away from the SaaS later?
+   - Migration costs if the vendor raises prices or shuts down
+
+10. SWITCHING COSTS:
+    - If you build and it fails, can you easily migrate to a SaaS?
+    - If you buy and it fails, can you easily build?
+
+OUTPUT REQUIREMENTS:
+- verdict: "high" = BUY (strong case for SaaS), "medium" = HYBRID (buy + customize), "low" = BUILD (custom is the right call)
+- score: 0-100 (higher = stronger case for buying)
+- summary: 2-3 sentence executive summary that references their specific situation
+- keyInsights: 4-6 insights, each should be a specific factor with your analysis (not generic). Reference their team size, timeline, budget.
+- recommendations: 3-5 specific recommendations. NAME SPECIFIC TOOLS with pricing. If recommending build, estimate hours + cost. Include a 3-year cost comparison in one recommendation.
+- actionItems: 2-3 things to do TODAY (e.g., "Sign up for Clerk's free tier and test the auth flow" or "Get a quote from 2 agencies for the build")
+- risks: 2-3 risks of your recommended path
 - confidence: "high" | "medium" | "low"
 
-Consider: total cost of ownership, time to value, maintenance burden, opportunity cost, competitive advantage, team expertise, scalability, and integration needs. If there are well-known SaaS tools that solve this, name them with pricing.`,
-  temperature: 0.3,
+CRITICAL: Always reference SPECIFIC tools from the knowledge base with REAL pricing. Never say "consider a SaaS tool" — say "Use Clerk (free up to 10K users) because your team has no developers and needs auth in days, not months."
+
+If the user's scenario matches a knowledge base entry, reference the specific SaaS alternatives with their pricing. If it doesn't match, use your knowledge of the SaaS landscape to recommend specific tools.`,
+  temperature: 0.4,
 
   verdictLabels: {
     high: 'BUY',
@@ -132,14 +210,15 @@ Consider: total cost of ownership, time to value, maintenance burden, opportunit
   },
 
   tweetTemplates: [
-    'Build vs. Buy — the eternal debate. I built a free tool that analyzes your situation and gives you a clear recommendation with cost comparison + action items. Try it: {url}',
-    'Stop debating build vs. buy in meetings. Describe what you need → get an instant analysis with cost, time, and a verdict. Free: {url}',
-    'New tool: Build vs. Buy analyzer. Input what you need → get a recommendation + specific tools to buy or estimated build cost. {url}',
+    'Build vs. Buy — the eternal debate. I built a free tool that analyzes your situation and gives specific tool recommendations with pricing, 3-year cost comparison, and action items. Try it: {url}',
+    'Stop debating build vs. buy in meetings. Describe what you need → get instant analysis with specific SaaS alternatives, build cost estimates, and a clear verdict. Free: {url}',
+    'New tool: Build vs. Buy analyzer. Covers 15+ scenarios (auth, CMS, e-commerce, CRM, payments...) with real pricing. Input what you need → get a recommendation in 5 seconds. {url}',
+    'Should you build it or buy it? I built a free AI tool that gives you specific tool names + pricing + 3-year cost comparison + maintenance estimate. No more guessing. {url}',
   ],
 
   emailSubject: 'Your Build vs. Buy analysis report',
 
-  keywords: ['build vs buy', 'make or buy', 'software decision', 'SaaS vs custom'],
+  keywords: ['build vs buy', 'make or buy', 'software decision', 'SaaS vs custom', 'build or buy', 'software architecture'],
 };
 
 // ============================================================
