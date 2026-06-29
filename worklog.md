@@ -83,3 +83,41 @@ Stage Summary:
 - Files modified: `src/app/page.tsx`, `src/components/automation/landing.tsx`.
 - Still pending from Task 1: GitHub push + Vercel auto-deploy wiring, `/tools/[slug]` hub routing refactor, tweet-draft + approve-and-post script. Awaiting user setup confirmation.
 - Next product iteration ideas: industry-specific benchmarks, shareable results URLs (each assessment gets its own permalink), email capture before showing results, "connect a tool" mode (Notion/Linear/Slack OAuth → read workflow docs directly).
+
+---
+Task ID: 3
+Agent: main (Super Z)
+Task: Set up deployment pipeline — GitHub push, Vercel auto-deploy, X posting automation. User provided: GitHub repo URL (https://github.com/aleks2219/what-to-automate), Twitter Consumer Key/Secret/Bearer Token.
+
+Work Log:
+- Security note: User shared Twitter Consumer Key, Consumer Secret, and Bearer Token in chat. Recommended rotating Consumer Secret and Bearer Token after setup is complete. Did NOT write any real secrets to disk anywhere that could be committed.
+- Noted that user is missing Access Token + Access Token Secret (needed for OAuth 1.0a User Context to POST tweets). The Bearer Token they shared is for app-only read-only requests, not for posting.
+- Created `.gitignore` — excludes node_modules, .next, .env, dev.log, /download/, /examples/, /skills/, /.zscripts/, .vercel, tweets/drafts/, tweets/posted/, prisma/*.db.
+- Created `.env.example` — template with all 5 required env vars (Twitter Consumer Key/Secret, Access Token/Secret, NEXT_PUBLIC_SITE_URL).
+- Created `README.md` — full project documentation: architecture, local dev, Vercel deploy steps, tweet workflow, project structure.
+- Installed `twitter-api-v2` package for OAuth 1.0a User Context support.
+- Built `scripts/twitter-client.mjs` — shared helper that loads .env, validates required Twitter credentials are present, returns TwitterApi instance. Exits with helpful error message if creds are missing or still placeholders.
+- Built `scripts/tweet-draft.mjs` — reads tool metadata from `tweets/tools/<name>.json`, generates tweet copy using 5 "builder-direct" tone templates (per user preference), saves draft markdown with frontmatter + tweet text + review notes to `tweets/drafts/`. Validates character count (280 max for non-premium X). Tested: all 5 templates generate valid tweets (236–272 chars).
+- Built `scripts/tweet-post.mjs` — reads draft markdown, extracts tweet text from "# Tweet copy" section, validates length, prompts user for confirmation (or accepts `--yes` flag), posts via OAuth 1.0a User Context, on success moves draft to `tweets/posted/` with tweet ID appended and removes the original. Comprehensive error handling for common failure modes (missing creds, read-only app, duplicate tweet, rate limit).
+- Created `tweets/tools/autoscore.json` — metadata for AutoScore: name, slug, url (placeholder what-to-automate.vercel.app), tagline, key features, example use case, audience.
+- Tested both scripts:
+  - `node scripts/tweet-draft.mjs autoscore 0` → generates 236-char tweet ✓
+  - `node scripts/tweet-draft.mjs autoscore 1` → generates 252-char tweet ✓
+  - `node scripts/tweet-post.mjs <draft>` → correctly prompts for confirmation, exits cleanly on "n" ✓
+- Reset git history to a single clean initial commit (was 3 commits with UUID messages from the scaffold).
+- Staged only project files (verified no .env, no sandbox files, no examples/ or skills/ folders, no download/ binaries).
+- Initial commit message: "Initial commit: AutoScore — automation assessment tool" with description.
+- Created project tarball at `/home/z/my-project/download/what-to-automate.tar.gz` (175KB, excludes node_modules/.next/.git/sandbox files) as fallback for the user to push from their own machine.
+- Attempted `git push` via HTTPS — fails with "could not read Username" (no SSH available in sandbox, no GitHub credentials configured).
+
+Stage Summary:
+- All code is committed locally in a single clean initial commit (SHA: 0637b1a).
+- Remote `origin` is set to https://github.com/aleks2219/what-to-automate.git.
+- Tweet scripts work end-to-end locally — just need real Twitter Access Token/Secret in .env to actually post.
+- Tarball available for manual push from user's machine if they prefer not to share a GitHub PAT.
+- BLOCKED ON USER:
+  1. Generate Twitter Access Token + Access Token Secret (with Read+Write app permissions)
+  2. Choose push method: (a) run `git push` from their own machine after downloading the tarball, OR (b) create a GitHub PAT with `repo` scope and share it for direct push
+  3. Import the GitHub repo into Vercel (sign in with GitHub, click "Add New Project", select "what-to-automate", add env vars, deploy)
+  4. After deploy: update `NEXT_PUBLIC_SITE_URL` in Vercel env vars to the production URL, update `tweets/tools/autoscore.json` url field to match
+- Once unblocked: run `node scripts/tweet-draft.mjs autoscore`, edit draft, run `node scripts/tweet-post.mjs <draft>` to post first tweet.
