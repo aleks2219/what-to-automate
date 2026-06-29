@@ -1,0 +1,17 @@
+{
+  "name": "AutoScore",
+  "slug": "automation-evaluator",
+  "url": "https://what-to-automate.vercel.app",
+  "tagline": "Should you automate that process?",
+  "key_features": [
+    "Verdict: AUTOMATE NOW / PILOT FIRST / NOT YET",
+    "Annual $ saved, payback period, 3-year ROI",
+    "Strategic value callouts + risk considerations",
+    "Phased rollout roadmap",
+    "PDF export for board memos",
+    "3 input modes: describe, paste a doc, or talk"
+  ],
+  "example_use_case": "Every week our finance team reconciles ~200 vendor invoices against POs in NetSuite. Each takes 10–15 minutes.",
+  "audience": "Senior leaders, founders, ops directors, CFOs",
+  "tone": "builder-direct"
+}
