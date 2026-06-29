@@ -65,7 +65,35 @@ Your output MUST be valid JSON with this exact schema:
     "maturity": "string — 1 sentence on where this company sits vs typical automation maturity for their industry/size",
     "commonPatterns": ["array of 2-3 strings — common automation patterns in this industry, based on the process described"],
     "averageRoi": "string — 1 sentence on typical ROI for similar automation projects in this industry"
-  }
+  },
+
+  "currentToolAnalysis": [
+    {
+      "toolId": "string — the tool ID from the catalog if matched, or 'unknown' if not in catalog",
+      "toolName": "string — the display name (use catalog name if matched, otherwise what user typed)",
+      "detectedUse": "string — what they're likely using this tool for, based on context",
+      "status": "keep | replace | expand | underutilized | redundant — keep = optimal for its purpose; replace = there's a better/cheaper alternative; expand = could be used for more than they're using it for; underutilized = they have it but aren't using key features; redundant = overlaps with another tool they have",
+      "statusReason": "string — 1 sentence explaining the status",
+      "estimatedCost": "string — estimated annual cost (e.g., '$240/yr', 'Free', 'Unknown')"
+    }
+  ],
+  "consolidationOpportunities": [
+    {
+      "description": "string — specific action (e.g., 'Drop Zapier, keep Make — they overlap in SaaS integration')",
+      "savings": "string — estimated annual savings (e.g., '$240/year')",
+      "effort": "string — effort to execute (e.g., '2 hours to migrate 3 active Zaps')",
+      "priority": "high | medium | low"
+    }
+  ],
+  "toolshedGaps": [
+    {
+      "capability": "string — what's missing (e.g., 'Document AI for invoice extraction')",
+      "importance": "critical | useful | optional",
+      "suggestedToolIds": ["array of tool IDs from catalog that could fill this gap"]
+    }
+  ],
+  "usesExistingTools": "boolean — TRUE if the user's current toolshed already covers this process (don't recommend new tools, recommend they use what they have). FALSE if they need new tools.",
+  "toolshedSavings": "string — total estimated annual savings from consolidation opportunities (e.g., '$1,200/year'). 'None identified' if no opportunities."
 }
 
 CRITICAL RULES:
@@ -94,6 +122,25 @@ TOOL SELECTION RULES (CRITICAL — read carefully):
 15. For budgetBreakdown: provide realistic estimates. If implementation is via a purpose-built SaaS, implementation cost is low (mostly configuration). If custom dev, estimate hours × loaded hourly rate.
 16. For toolRationale: explain WHY these specific tools fit the user's process characteristics AND why they minimize the user's effort. Mention what the user actually does (upload, configure, build visually) rather than abstract capabilities.
 
+TOOLSHED ANALYSIS RULES (CRITICAL — read carefully):
+17. If the user provided 'current tools' (the list of tools they already use), analyze each one:
+    a. Match each to the tool catalog by name or alias (case-insensitive). If no match, set toolId='unknown' and toolName=what they typed.
+    b. For each tool, determine status:
+       - 'keep': optimal for its purpose, no action needed
+       - 'replace': there's a better/cheaper alternative in the catalog — mention what
+       - 'expand': they could use it for MORE than they currently do (e.g., Slack Workflow Builder)
+       - 'underutilized': they have it but aren't using key features
+       - 'redundant': overlaps with another tool they have (e.g., both Zapier AND Make)
+    c. Estimate annual cost based on typical pricing for their company size
+18. Identify consolidation opportunities: where two tools overlap, recommend dropping one. Calculate savings. Prioritize by $ saved / effort required.
+19. Identify gaps: what capabilities are missing from their toolshed that this process needs? Only flag if 'critical' or 'useful'.
+20. CRITICAL: If usesExistingTools=true, the user already has tools that cover this process. In that case:
+    - Set firstStep to 'You already have X — here's how to use it for this process: [specific config steps]'
+    - Set recommendedToolIds to the existing tools they should use (not new ones)
+    - Set toolRationale to explain that they don't need new tools
+    - The verdict may shift toward AUTOMATE_NOW since the implementation cost is near zero
+21. If no current tools provided, return empty arrays for currentToolAnalysis, consolidationOpportunities, toolshedGaps. Set usesExistingTools=false and toolshedSavings='None identified'.
+
 === TOOL CATALOG ===
 ${TOOL_CATALOG}
 
@@ -106,7 +153,7 @@ ${TEMPLATE_CATALOG}`;
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { text, mode } = body as { text: string; mode?: string };
+    const { text, mode, currentTools } = body as { text: string; mode?: string; currentTools?: string };
 
     if (!text || typeof text !== 'string' || text.trim().length < 5) {
       return NextResponse.json(
@@ -129,15 +176,19 @@ export async function POST(req: NextRequest) {
         ? 'The user pasted a document (could be an SOP, Slack thread, meeting notes, job description, or process documentation). Extract the process being described even if the document covers multiple topics.'
         : 'The user typed a brief description of a process they want to evaluate for automation.';
 
+    const currentToolsSection = currentTools && currentTools.trim().length > 0
+      ? `\n\n--- USER'S CURRENT TOOLS ---\n${currentTools.trim()}\n\nAnalyze each tool above per the toolshed analysis rules. Determine if their existing tools already cover this process.`
+      : '\n\n--- USER\'S CURRENT TOOLS ---\n(None provided — skip toolshed analysis, return empty arrays.)';
+
     const raw = await groqChatCompletion(
       [
         { role: 'system', content: SYSTEM_PROMPT },
         {
           role: 'user',
-          content: `${modeHint}\n\n--- USER INPUT ---\n${text.trim()}`,
+          content: `${modeHint}${currentToolsSection}\n\n--- USER INPUT ---\n${text.trim()}`,
         },
       ],
-      { json: true, temperature: 0.3, maxTokens: 3000 }
+      { json: true, temperature: 0.3, maxTokens: 4000 }
     );
 
     if (!raw || !raw.trim()) {
@@ -226,6 +277,21 @@ export async function POST(req: NextRequest) {
         averageRoi: '',
       };
     }
+
+    // Ensure toolshed analysis fields have defaults
+    if (!parsed.currentToolAnalysis) parsed.currentToolAnalysis = [];
+    if (!parsed.consolidationOpportunities) parsed.consolidationOpportunities = [];
+    if (!parsed.toolshedGaps) {
+      parsed.toolshedGaps = [];
+    } else {
+      // Validate suggestedToolIds in gaps
+      parsed.toolshedGaps = parsed.toolshedGaps.map((g) => ({
+        ...g,
+        suggestedToolIds: (g.suggestedToolIds || []).filter((id) => validToolIds.has(id)),
+      }));
+    }
+    if (typeof parsed.usesExistingTools !== 'boolean') parsed.usesExistingTools = false;
+    if (!parsed.toolshedSavings) parsed.toolshedSavings = 'None identified';
 
     return NextResponse.json(parsed);
   } catch (err: unknown) {

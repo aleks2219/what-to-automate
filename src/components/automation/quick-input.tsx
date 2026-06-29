@@ -12,6 +12,7 @@ import {
   Loader2,
   Sparkles,
   Zap,
+  Wrench,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -38,6 +39,7 @@ export function QuickInput({ onExtracted, onBack, onManual }: QuickInputProps) {
   const [mode, setMode] = useState<InputMode>('describe');
   const [text, setText] = useState('');
   const [pasted, setPasted] = useState('');
+  const [currentTools, setCurrentTools] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -83,7 +85,11 @@ export function QuickInput({ onExtracted, onBack, onManual }: QuickInputProps) {
       const res = await fetch('/api/extract', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: input, mode }),
+        body: JSON.stringify({
+          text: input,
+          mode,
+          currentTools: currentTools.trim() || undefined,
+        }),
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({ error: 'Extraction failed' }));
@@ -406,6 +412,34 @@ export function QuickInput({ onExtracted, onBack, onManual }: QuickInputProps) {
                 </Card>
               </TabsContent>
             </Tabs>
+
+            {/* Current tools input — optional but enables toolshed analysis */}
+            <div className="mt-6 p-4 rounded-lg border border-stone-200 bg-stone-50/50">
+              <div className="flex items-start gap-2.5 mb-2">
+                <div className="w-7 h-7 rounded-md bg-stone-200 flex items-center justify-center flex-shrink-0">
+                  <Wrench className="w-3.5 h-3.5 text-stone-700" />
+                </div>
+                <div className="flex-1">
+                  <label className="text-sm font-medium text-stone-900 block mb-0.5">
+                    What tools do you already use?{' '}
+                    <span className="text-xs text-stone-500 font-normal">(optional)</span>
+                  </label>
+                  <p className="text-xs text-stone-500 leading-relaxed">
+                    We&apos;ll analyze your toolshed for redundancies, underutilized tools, and cost-saving opportunities.
+                  </p>
+                </div>
+              </div>
+              <input
+                type="text"
+                value={currentTools}
+                onChange={(e) => setCurrentTools(e.target.value)}
+                placeholder="e.g., Slack, Notion, Zapier, NetSuite, Salesforce, Excel..."
+                className="w-full mt-2 px-3 py-2 text-sm bg-white border border-stone-200 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+              />
+              <div className="text-xs text-stone-400 mt-1.5">
+                Comma-separated list of tool names. Skip if you don&apos;t want toolshed analysis.
+              </div>
+            </div>
 
             {error && (
               <div className="mt-5 text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-md p-3">

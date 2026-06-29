@@ -15,9 +15,32 @@ export interface BudgetBreakdown {
 }
 
 export interface IndustryBenchmarks {
-  maturity: string; // e.g., "Mid-maturity — typical for your industry/size"
-  commonPatterns: string[]; // 2-3 common automation patterns in this industry
-  averageRoi: string; // e.g., "Companies like yours typically see 180% ROI over 3 years"
+  maturity: string;
+  commonPatterns: string[];
+  averageRoi: string;
+}
+
+// NEW: Toolshed analysis — current tools evaluation
+export interface CurrentToolAnalysis {
+  toolId: string; // matched tool ID from tools-db (or "unknown" if not in DB)
+  toolName: string; // display name (may differ from DB if unknown)
+  detectedUse: string; // what they're likely using it for
+  status: 'keep' | 'replace' | 'expand' | 'underutilized' | 'redundant';
+  statusReason: string; // why this status
+  estimatedCost: string; // estimated annual cost (e.g., "$240/yr")
+}
+
+export interface ConsolidationOpportunity {
+  description: string; // e.g., "Drop Zapier, keep Make — they overlap"
+  savings: string; // e.g., "$240/year"
+  effort: string; // e.g., "2 hours to migrate 3 active Zaps"
+  priority: 'high' | 'medium' | 'low';
+}
+
+export interface ToolshedGap {
+  capability: string; // e.g., "Document AI for invoice extraction"
+  importance: 'critical' | 'useful' | 'optional';
+  suggestedToolIds: string[]; // tools from DB that could fill this gap
 }
 
 export interface ExtractionResult {
@@ -51,6 +74,13 @@ export interface ExtractionResult {
   firstStep: string; // concrete action the user can take today
   budgetBreakdown: BudgetBreakdown;
   industryBenchmarks: IndustryBenchmarks;
+
+  // NEW: Toolshed analysis fields (v3)
+  currentToolAnalysis: CurrentToolAnalysis[]; // analysis of tools user already has
+  consolidationOpportunities: ConsolidationOpportunity[]; // cost-saving recs
+  toolshedGaps: ToolshedGap[]; // what's missing from their toolshed
+  usesExistingTools: boolean; // does their current toolshed already cover this process?
+  toolshedSavings: string; // e.g., "$1,200/year" — total potential savings from consolidation
 }
 
 // Helper to merge extraction result into AssessmentInput with sensible defaults

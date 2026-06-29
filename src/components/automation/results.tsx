@@ -34,6 +34,7 @@ import { ActionPlan } from '@/components/automation/action-plan';
 import { CaseStudiesSection } from '@/components/automation/case-studies-section';
 import { TemplatesSection } from '@/components/automation/templates-section';
 import { EmailCapture } from '@/components/automation/email-capture';
+import { ToolshedAnalysis } from '@/components/automation/toolshed-analysis';
 
 interface ResultsProps {
   input: AssessmentInput;
@@ -375,6 +376,18 @@ export function Results({ input, result, extraction, onRestart }: ResultsProps) 
                 Concrete next steps — specific tools, real case studies, and what to do today.
               </p>
             </div>
+
+            {/* Toolshed analysis — only render when user provided current tools */}
+            {extraction.currentToolAnalysis && extraction.currentToolAnalysis.length > 0 && (
+              <ToolshedAnalysis
+                currentToolAnalysis={extraction.currentToolAnalysis}
+                consolidationOpportunities={extraction.consolidationOpportunities || []}
+                toolshedGaps={extraction.toolshedGaps || []}
+                usesExistingTools={extraction.usesExistingTools || false}
+                toolshedSavings={extraction.toolshedSavings || 'None identified'}
+              />
+            )}
+
             <ActionPlan
               recommendedToolIds={extraction.recommendedToolIds}
               toolRationale={extraction.toolRationale}
