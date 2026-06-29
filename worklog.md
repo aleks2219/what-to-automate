@@ -189,3 +189,27 @@ Stage Summary:
 - 5 tweet drafts ready to fire — user picks one, I run tweet-post.mjs to publish.
 - All tweet URLs use the production URL (without random hash).
 - BLOCKED ON USER: (1) disable Vercel Authentication, (2) pick a tweet option (0-4).
+
+---
+Task ID: 7
+Agent: main (Super Z)
+Task: Fix AI extraction error on Vercel deployment ("Configuration file not found or invalid").
+
+Work Log:
+- User tested the live Vercel deploy and got: "Could not extract: Extraction failed: Configuration file not found or invalid. Please create .z-ai-config in your project, home directory, or /etc."
+- Investigated: the z-ai-web-dev-sdk reads from a .z-ai-config JSON file (baseUrl, apiKey, token, chatId, userId). In sandbox it exists at /etc/.z-ai-config. On Vercel it doesn't exist.
+- Read the SDK source code to understand the config loading mechanism: checks process.cwd()/.z-ai-config, then os.homedir()/.z-ai-config, then /etc/.z-ai-config. No env var support, no programmatic config injection.
+- IMPORTANT FINDING: The sandbox config uses baseUrl=https://internal-api.z.ai/v1 with a JWT token tied to THIS chat session. This is NOT a public production API — it's the internal Z.ai sandbox backend. It may not be reachable from Vercel's servers, and the token may expire when this chat ends.
+- Built src/lib/zai-config.ts — helper that writes a .z-ai-config file from Z_AI_* environment variables at runtime, into os.homedir() (writable on Vercel serverless functions).
+- Updated src/app/api/extract/route.ts and src/app/api/transcribe/route.ts to call ensureZaiConfig() before ZAI.create().
+- Updated .env.example with 5 new Z_AI_* env var placeholders.
+- Lint passes. Committed locally (SHA: d48628d).
+- Attempted to push to GitHub using the previous PAT — authentication failed. User already deleted the PAT (good security hygiene).
+- Explained to user: this is a stopgap. If internal-api.z.ai isn't reachable from Vercel, or the token expires, we need to pivot to a proper LLM provider (OpenAI/Groq/Gemini).
+
+Stage Summary:
+- Code fix is committed locally but not yet pushed to GitHub (need new PAT).
+- Even after push, success is uncertain — depends on whether Vercel can reach internal-api.z.ai and whether the session JWT is still valid.
+- Recommended path: try the stopgap first (quick test), pivot to OpenAI/Groq if it fails.
+- For the pivot: the extract route would need to swap z-ai-web-dev-sdk for openai SDK, using GPT-4o-mini (~$0.001/extraction) or Groq free tier (Llama 3.3 70B, free).
+- BLOCKED ON USER: (1) create new PAT to push the fix, (2) add 5 Z_AI_* env vars on Vercel, (3) disable Vercel Authentication, (4) test if extraction works on the live site.
