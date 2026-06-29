@@ -70,33 +70,35 @@ export function Landing({ onStart, onManual, onMatcher }: LandingProps) {
                 AI tools — match scores, real pros/cons, and direct links to try them.
                 Or run a full assessment on a specific process for ROI + roadmap.
               </p>
-              <div className="flex flex-col sm:flex-row gap-3">
+              <div className="flex flex-col gap-3">
                 <Button
                   size="lg"
                   onClick={onMatcher}
-                  className="bg-emerald-700 hover:bg-emerald-800 text-white h-12 px-7 text-base"
+                  className="bg-emerald-700 hover:bg-emerald-800 text-white h-12 px-7 text-base w-full sm:w-auto"
                 >
                   <Heart className="w-4 h-4 mr-1.5" />
                   Swipe through AI tools
                   <ArrowRight className="w-4 h-4 ml-1" />
                 </Button>
-                <Button
-                  size="lg"
-                  variant="outline"
-                  onClick={onStart}
-                  className="border-emerald-300 text-emerald-800 hover:bg-emerald-50 h-12 px-7 text-base"
-                >
-                  <Sparkles className="w-4 h-4 mr-1.5" />
-                  Full assessment
-                </Button>
-                <Button
-                  size="lg"
-                  variant="outline"
-                  onClick={onManual}
-                  className="border-stone-300 text-stone-700 hover:bg-stone-50 h-12 px-7 text-base"
-                >
-                  Manual form
-                </Button>
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <Button
+                    size="lg"
+                    variant="outline"
+                    onClick={onStart}
+                    className="border-emerald-300 text-emerald-800 hover:bg-emerald-50 h-12 px-5 text-sm flex-1"
+                  >
+                    <Sparkles className="w-4 h-4 mr-1.5" />
+                    Full assessment
+                  </Button>
+                  <Button
+                    size="lg"
+                    variant="outline"
+                    onClick={onManual}
+                    className="border-stone-300 text-stone-700 hover:bg-stone-50 h-12 px-5 text-sm flex-1"
+                  >
+                    Manual form
+                  </Button>
+                </div>
               </div>
 
               <div className="mt-4 text-sm text-stone-500 flex items-center gap-3">
