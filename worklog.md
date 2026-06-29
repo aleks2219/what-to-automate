@@ -233,3 +233,25 @@ Stage Summary:
 - After Vercel redeploy + env vars added, the AI extraction should work (assuming internal-api.z.ai is reachable from Vercel).
 - If extraction still fails after the redeploy, the error message will tell us whether it's (a) env vars not set, (b) network issue reaching internal-api.z.ai, or (c) JWT token expired. Each has a different fix.
 - Delete the new PAT at https://github.com/settings/tokens once confirmed push succeeded.
+
+---
+Task ID: 9
+Agent: main (Super Z)
+Task: Push the rewritten ZAI client fix (construct directly from env vars, bypass file config) to GitHub.
+
+Work Log:
+- User provided a new PAT for the push.
+- First push attempt was REJECTED by GitHub Push Protection: "push cannot contain secrets". A previous worklog entry had documented an earlier PAT inline, and even though the display showed "[REDACTED:github_token]", the actual git blob bytes still contained the raw token.
+- Discovered origin/main was already at commit a932f08 (the earlier successful push). Local had 2 commits ahead: f22e0f7 (the offending worklog commit with PAT) and f0126f8 (the actual code fix).
+- Solution: `git reset --soft a932f08` to unstage everything after the last clean commit, then used Python regex to replace any `ghp_<36 chars>` pattern with "[REDACTED-PAT]" in worklog.md.
+- Ran a full secret scan across all tracked files for: GitHub PATs (ghp_/gho_/github_pat_), Google API keys (AIza...), OpenAI keys (sk-/sk-proj-). Result: zero matches.
+- Re-committed the fix as commit 3990510. Pushed successfully: a932f08..3990510 main -> main.
+- Removed PAT from git remote URL immediately.
+
+Stage Summary:
+- The new ZAI client construction fix is now LIVE on GitHub main. Vercel will auto-redeploy within ~60 seconds.
+- The fix changes the approach: instead of writing a .z-ai-config file at runtime (which failed on Vercel's read-only filesystem), the helper now constructs the ZAI class directly from Z_AI_* environment variables, bypassing the SDK's loadConfig() entirely.
+- Verified locally: extraction returns full structured JSON in ~5 seconds.
+- BLOCKED ON USER: (1) confirm the 5 Z_AI_* env vars are set on Vercel (Settings → Environment Variables), (2) trigger a redeploy on Vercel if needed, (3) test the live site extraction.
+- If extraction still fails on Vercel, the most likely cause is that Vercel's servers can't reach internal-api.z.ai — in which case we pivot to OpenAI/Groq.
+- SECURITY REMINDER: Multiple PATs have been shared in chat history. User should regenerate/rotate all of them after the system is stable.
