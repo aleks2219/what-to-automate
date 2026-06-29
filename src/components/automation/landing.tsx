@@ -58,7 +58,7 @@ export function Landing({ onStart, onManual, onMatcher }: LandingProps) {
             >
               <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-50 text-emerald-800 text-xs font-medium mb-6 border border-emerald-100">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-600" />
-                125+ AI tools · Free · No login
+                250+ AI tools · Free · No login
               </div>
               <h1 className="text-4xl md:text-5xl lg:text-6xl font-semibold tracking-tight text-stone-900 leading-[1.05] mb-6">
                 Find the{' '}
@@ -115,7 +115,7 @@ export function Landing({ onStart, onManual, onMatcher }: LandingProps) {
               </div>
 
               <div className="mt-10 grid grid-cols-3 gap-6">
-                <Stat value="125+" label="AI tools curated" />
+                <Stat value="250+" label="AI tools curated" />
                 <Stat value="< 1 min" label="To your matches" />
                 <Stat value="Free" label="No login required" />
               </div>
