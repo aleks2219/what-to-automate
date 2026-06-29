@@ -2,23 +2,25 @@
 
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Mail, FileText, Gift, Check, Loader2, Sparkles, ArrowRight } from 'lucide-react';
+import { Mail, FileText, Gift, Check, Loader2, Sparkles, ArrowRight, Download } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { AssessmentInput, AssessmentResult } from '@/lib/automation';
+import { ExtractionResult } from '@/lib/extraction-types';
 
 interface EmailCaptureProps {
-  // Pass the report data so we can include it in the email trigger
-  processName: string;
-  verdict: string;
-  annualSavings: string;
+  input: AssessmentInput;
+  result: AssessmentResult;
+  extraction: ExtractionResult | null;
 }
 
-export function EmailCapture({ processName, verdict, annualSavings }: EmailCaptureProps) {
+export function EmailCapture({ input, result, extraction }: EmailCaptureProps) {
   const [email, setEmail] = useState('');
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [errorMessage, setErrorMessage] = useState('');
+  const [pdfDownloading, setPdfDownloading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -37,10 +39,10 @@ export function EmailCapture({ processName, verdict, annualSavings }: EmailCaptu
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           email: email.trim(),
-          processName,
-          verdict,
-          annualSavings,
           source: 'autoscore',
+          input,
+          result,
+          extraction,
         }),
       });
 
@@ -57,8 +59,37 @@ export function EmailCapture({ processName, verdict, annualSavings }: EmailCaptu
     }
   };
 
-  const handlePrintPdf = () => {
-    window.print();
+  // Download PDF directly from the server
+  const handleDownloadPdf = async () => {
+    setPdfDownloading(true);
+    try {
+      const res = await fetch('/api/generate-report-pdf', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ input, result, extraction }),
+      });
+
+      if (!res.ok) {
+        throw new Error('Failed to generate PDF');
+      }
+
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      const processName = input.processName || 'process-assessment';
+      a.download = `autoscore-${processName.toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 40)}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('PDF download error:', err);
+      setErrorMessage('Could not generate PDF. Try the print option instead.');
+      setStatus('error');
+    } finally {
+      setPdfDownloading(false);
+    }
   };
 
   return (
@@ -78,25 +109,37 @@ export function EmailCapture({ processName, verdict, annualSavings }: EmailCaptu
                   <Check className="w-6 h-6 text-emerald-700" />
                 </div>
                 <h3 className="text-lg font-semibold text-stone-900 mb-2">
-                  You&apos;re in! Check your inbox.
+                  You&apos;re subscribed!
                 </h3>
                 <p className="text-sm text-stone-600 mb-4 max-w-md mx-auto">
-                  We&apos;ve sent your report summary + the automation playbook to{' '}
-                  <span className="font-medium text-stone-900">{email}</span>.
-                  The 5-day email course starts tomorrow.
+                  We&apos;ve added you to the AutoScore newsletter.{' '}
+                  <span className="font-medium text-stone-900">{email}</span>
                 </p>
-                <div className="bg-white/60 rounded-md p-3 max-w-sm mx-auto">
-                  <div className="text-xs font-medium text-stone-700 mb-1">
-                    Want a PDF of this report right now?
+
+                {/* Direct PDF download — server-generated, styled report */}
+                <div className="bg-white/80 rounded-md p-4 max-w-sm mx-auto border border-emerald-200">
+                  <div className="text-sm font-semibold text-stone-900 mb-1">
+                    Download your full report PDF
                   </div>
+                  <p className="text-xs text-stone-600 mb-3">
+                    Multi-page report with verdict, metrics, roadmap, tool recommendations, case studies, and assessment inputs.
+                  </p>
                   <Button
-                    onClick={handlePrintPdf}
-                    variant="outline"
-                    size="sm"
-                    className="border-stone-300 text-stone-700"
+                    onClick={handleDownloadPdf}
+                    disabled={pdfDownloading}
+                    className="w-full bg-emerald-700 hover:bg-emerald-800 text-white"
                   >
-                    <FileText className="w-3.5 h-3.5 mr-1.5" />
-                    Save as PDF
+                    {pdfDownloading ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-1.5 animate-spin" />
+                        Generating PDF...
+                      </>
+                    ) : (
+                      <>
+                        <Download className="w-4 h-4 mr-1.5" />
+                        Download PDF report
+                      </>
+                    )}
                   </Button>
                 </div>
               </div>
@@ -115,7 +158,7 @@ export function EmailCapture({ processName, verdict, annualSavings }: EmailCaptu
                 </div>
                 <div>
                   <h3 className="text-base font-semibold text-stone-900">
-                    Get the PDF + automation playbook
+                    Get your full report as PDF
                   </h3>
                   <p className="text-xs text-stone-500">Free. No spam. Unsubscribe anytime.</p>
                 </div>
@@ -124,8 +167,8 @@ export function EmailCapture({ processName, verdict, annualSavings }: EmailCaptu
               <div className="space-y-3 mb-4">
                 <Perk
                   icon={FileText}
-                  title="This report as PDF"
-                  description="Print-ready version with all sections, formatted for sharing."
+                  title="Full report as PDF"
+                  description="Multi-page report with verdict, ROI, roadmap, tool recommendations, case studies — formatted for sharing."
                 />
                 <Perk
                   icon={Sparkles}
@@ -168,7 +211,7 @@ export function EmailCapture({ processName, verdict, annualSavings }: EmailCaptu
                       </>
                     ) : (
                       <>
-                        Send me the PDF
+                        Get my report
                         <ArrowRight className="w-4 h-4 ml-1" />
                       </>
                     )}
@@ -180,8 +223,7 @@ export function EmailCapture({ processName, verdict, annualSavings }: EmailCaptu
               </form>
 
               <p className="text-xs text-stone-500 mt-3 leading-relaxed">
-                By subscribing, you&apos;ll receive the report, the playbook, and the 5-day course.
-                You&apos;ll also get notified when I ship new free tools. No spam, unsubscribe anytime.
+                Enter your email to get the full PDF report + playbook + 5-day course. You can also download the PDF directly after subscribing.
               </p>
             </motion.div>
           )}

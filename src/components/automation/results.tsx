@@ -402,9 +402,9 @@ export function Results({ input, result, extraction, onRestart }: ResultsProps) 
 
         {/* Email capture — soft gate for PDF + playbook */}
         <EmailCapture
-          processName={input.processName}
-          verdict={verdictLabel}
-          annualSavings={formatCurrency(result.annualCostSavings)}
+          input={input}
+          result={result}
+          extraction={extraction}
         />
 
         {/* Assessment summary footer */}
