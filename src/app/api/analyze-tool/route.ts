@@ -3,7 +3,7 @@ import { groqChatCompletion } from '@/lib/llm';
 import { getToolBySlug, ToolAnalysisResult } from '@/lib/tools-registry';
 import { BUILD_SCENARIOS } from '@/lib/build-vs-buy-db';
 import { STARTUP_PATTERNS } from '@/lib/idea-validator-db';
-import { MODELS, OPTIMIZATION_TIPS, MODEL_SELECTION_GUIDE } from '@/lib/token-calculator-db';
+import { MODELS, OPTIMIZATION_TIPS, MODEL_SELECTION_GUIDE, HIDDEN_COSTS } from '@/lib/token-calculator-db';
 
 // Generic AI analysis endpoint for the Tool Engine.
 // Takes: { slug, input, fields: { industry, teamSize, etc. }, companyWebsite }
@@ -92,15 +92,18 @@ RULES:
     // Inject knowledge base for token cost calculator
     if (tool.slug === 'token-cost-calculator') {
       const modelText = MODELS.map((m) =>
-        `- ${m.provider} ${m.model} | Input: $${m.inputPricePerM}/M | Output: $${m.outputPricePerM}/M | Cached: ${m.cachedInputPricePerM ? '$' + m.cachedInputPricePerM + '/M' : 'N/A'} | Context: ${(m.contextWindow / 1000).toFixed(0)}K | Quality: ${m.qualityTier} | Latency: ${m.latencyMs}ms | Speed: ${m.throughputTps} tps | Capabilities: ${m.capabilities.join(', ')} | Best for: ${m.bestFor} | Notes: ${m.notes}`
+        `- ${m.provider} ${m.model} | Input: $${m.inputPricePerM}/M | Output: $${m.outputPricePerM}/M | Cached: ${m.cachedInputPricePerM ? '$' + m.cachedInputPricePerM + '/M' : 'N/A'} | Batch: ${m.batchInputPricePerM ? '$' + m.batchInputPricePerM + '/M in, $' + m.batchOutputPricePerM + '/M out' : 'N/A'} | Vision: ${m.visionPricePerM ? '$' + m.visionPricePerM + '/M' : 'N/A'} | Context: ${(m.contextWindow / 1000).toFixed(0)}K | Quality: ${m.qualityTier} (${m.qualityScore}/100) | Latency: ${m.latencyMs}ms | Speed: ${m.throughputTps} tps | Capabilities: ${m.capabilities.join(', ')} | Best for: ${m.bestFor} | Hidden costs: ${m.hiddenCosts.join('; ')} | Notes: ${m.notes}`
       ).join('\n');
       const tipsText = OPTIMIZATION_TIPS.map((t) =>
-        `- ${t.title}: ${t.description} (Savings: ${t.savings}, Providers: ${t.providers.join(', ')})`
+        `- ${t.title}: ${t.description} (Savings: ${t.savings}, Effort: ${t.effort}, Providers: ${t.providers.join(', ')})`
       ).join('\n');
       const guideText = MODEL_SELECTION_GUIDE.map((g) =>
-        `- ${g.useCase}: ${g.recommended} (${g.reasoning}) Budget: ${g.budget}`
+        `- ${g.useCase}: ${g.recommended} (${g.reasoning}) Budget: ${g.budget} | Alt: ${g.alternative || 'N/A'}`
       ).join('\n');
-      knowledgeBaseSection = `\n\n=== MODEL PRICING DATABASE (${MODELS.length} models) ===\n${modelText}\n\n=== OPTIMIZATION TIPS (${OPTIMIZATION_TIPS.length}) ===\n${tipsText}\n\n=== MODEL SELECTION GUIDE (${MODEL_SELECTION_GUIDE.length} use cases) ===\n${guideText}\n\nUse the pricing data to calculate their actual costs. Use the optimization tips to find savings. Use the selection guide to recommend the right models for their use case.`;
+      const hiddenCostsText = HIDDEN_COSTS.map((h) =>
+        `- ${h.cost}: ${h.description} Impact: ${h.impact}. Mitigation: ${h.mitigation}`
+      ).join('\n');
+      knowledgeBaseSection = `\n\n=== MODEL PRICING DATABASE (${MODELS.length} models) ===\n${modelText}\n\n=== OPTIMIZATION STRATEGIES (${OPTIMIZATION_TIPS.length}) ===\n${tipsText}\n\n=== MODEL SELECTION GUIDE (${MODEL_SELECTION_GUIDE.length} use cases) ===\n${guideText}\n\n=== HIDDEN COST WARNINGS (${HIDDEN_COSTS.length}) ===\n${hiddenCostsText}\n\nUse the pricing data to calculate their actual costs with math shown. Use the optimization strategies to find savings with dollar amounts. Use the selection guide to recommend the right models. Use the hidden cost warnings to audit their usage for costs they might not know about.`;
     }
 
     const systemPrompt = `${tool.systemPrompt}${knowledgeBaseSection}\n\n${outputSchema}`;
