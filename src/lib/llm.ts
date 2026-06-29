@@ -28,10 +28,15 @@ export function getGroqApiKey(): string {
 /**
  * Call Groq's chat completion API (OpenAI-compatible).
  * Returns the raw text content from the model.
+ *
+ * Pass `json: true` to enable JSON mode (response_format: json_object).
+ * When JSON mode is enabled, the word "json" MUST appear somewhere in the
+ * messages — Groq enforces this. The extract route's system prompt already
+ * contains "JSON" multiple times, so this works automatically.
  */
 export async function groqChatCompletion(
   messages: GroqMessage[],
-  options: { temperature?: number; maxTokens?: number } = {}
+  options: { temperature?: number; maxTokens?: number; json?: boolean } = {}
 ): Promise<string> {
   const apiKey = getGroqApiKey();
 
@@ -40,8 +45,20 @@ export async function groqChatCompletion(
     messages,
     temperature: options.temperature ?? 0.2,
     max_tokens: options.maxTokens ?? 2000,
-    response_format: { type: 'json_object' }, // Groq supports JSON mode for structured output
   };
+
+  // Only enable JSON mode when explicitly requested AND "json" appears in messages
+  if (options.json) {
+    const hasJsonInMessages = messages.some((m) =>
+      m.content.toLowerCase().includes('json')
+    );
+    if (!hasJsonInMessages) {
+      throw new Error(
+        'JSON mode requested but no message contains the word "json". Groq requires it.'
+      );
+    }
+    body.response_format = { type: 'json_object' };
+  }
 
   const res = await fetch(`${GROQ_API_URL}/chat/completions`, {
     method: 'POST',

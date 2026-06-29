@@ -69,13 +69,16 @@ export async function POST(req: NextRequest) {
         ? 'The user pasted a document (could be an SOP, Slack thread, meeting notes, job description, or process documentation). Extract the process being described even if the document covers multiple topics.'
         : 'The user typed a brief description of a process they want to evaluate for automation.';
 
-    const raw = await groqChatCompletion([
-      { role: 'system', content: SYSTEM_PROMPT },
-      {
-        role: 'user',
-        content: `${modeHint}\n\n--- USER INPUT ---\n${text.trim()}`,
-      },
-    ]);
+    const raw = await groqChatCompletion(
+      [
+        { role: 'system', content: SYSTEM_PROMPT },
+        {
+          role: 'user',
+          content: `${modeHint}\n\n--- USER INPUT ---\n${text.trim()}`,
+        },
+      ],
+      { json: true, temperature: 0.2, maxTokens: 2000 }
+    );
 
     if (!raw || !raw.trim()) {
       return NextResponse.json(
