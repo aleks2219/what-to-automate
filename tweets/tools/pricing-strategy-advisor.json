@@ -1,0 +1,21 @@
+{
+  "name": "Pricing Strategy Advisor",
+  "slug": "pricing-strategy-advisor",
+  "url": "https://what-to-automate-dq1j.vercel.app/tools/pricing-strategy-advisor",
+  "tagline": "Are you charging enough to cover your AI costs?",
+  "key_features": [
+    "8 pricing models compared with margin profiles",
+    "10 token cost patterns for common AI app types",
+    "6 margin benchmarks by AI SaaS category",
+    "10 common pricing mistakes with severity + fixes",
+    "4 pricing tier templates (SaaS, API, Creative, Enterprise)",
+    "Power-user risk analysis + worst-case modeling"
+  ],
+  "tweetTemplates": [
+    "Are you charging enough to cover your AI costs? I built a free tool that analyzes your app, calculates margin per user, finds pricing mistakes, and recommends a profitable tier structure. 8 pricing models compared. Try it: {url}",
+    "One power user can bankrupt your AI SaaS. I built a free tool that calculates your cost per user, margin per tier, and recommends pricing that protects your business. Try it: {url}",
+    "Most AI SaaS founders dont know their cost per user. I built a free tool that calculates it, flags margin-killing pricing mistakes, and recommends a profitable tier structure. {url}"
+  ],
+  "audience": "AI SaaS founders, product managers, indie hackers",
+  "tone": "builder-direct"
+}

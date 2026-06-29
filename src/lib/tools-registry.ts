@@ -483,6 +483,146 @@ CRITICAL RULES:
 };
 
 // ============================================================
+// TOOL 5: AI Pricing Strategy Advisor
+// ============================================================
+const pricingAdvisor: ToolConfig = {
+  slug: 'pricing-strategy-advisor',
+  name: 'Pricing Strategy Advisor',
+  tagline: 'Are you charging enough to cover your AI costs?',
+  description:
+    'Describe your AI app and usage. Get a pricing strategy with margin analysis, recommended tier structure, cost-per-user model, and warnings about pricing mistakes that kill AI SaaS businesses. Covers 8 pricing models, 10 cost patterns, margin benchmarks, and 4 tier templates.',
+  category: 'calculator',
+  icon: 'Calculator',
+  iconColor: '#DC2626',
+  status: 'live',
+  createdAt: '2026-06-29',
+  featured: true,
+
+  inputLabel: 'Describe your AI app, usage, and current pricing',
+  inputPlaceholder: 'e.g., We have an AI chatbot SaaS. Users send about 100 messages/day each, average 500 input + 200 output tokens per message. We use GPT-4o. Currently charging $20/mo flat subscription with unlimited usage. About 5000 users (800 paid, 4200 free). Free tier has no limits. Growing 20% per month. Worried about margins.',
+  inputHint: 'Include: what your app does, model(s) used, tokens per query, queries per user per day, current pricing, number of users (free vs paid), and growth rate. The more detail, the better the analysis.',
+  additionalFields: [
+    {
+      id: 'stage',
+      label: 'What stage are you at?',
+      type: 'select',
+      options: [
+        { value: 'pre-launch', label: 'Pre-launch (setting prices)' },
+        { value: 'early', label: 'Early (under 100 paying users)' },
+        { value: 'growth', label: 'Growth (100-1000 paying users)' },
+        { value: 'scale', label: 'Scale (1000+ paying users)' },
+      ],
+      helpText: 'Affects whether we optimize for growth or margin.',
+    },
+    {
+      id: 'monthlyRevenue',
+      label: 'Current monthly revenue (optional)',
+      type: 'text',
+      placeholder: 'e.g., $16,000/mo from 800 paid users',
+      helpText: 'Helps calculate current margin.',
+    },
+    {
+      id: 'monthlyTokenCost',
+      label: 'Current monthly token cost (optional)',
+      type: 'text',
+      placeholder: 'e.g., $8,000/mo across all users',
+      helpText: 'If unknown, we will estimate from your usage description.',
+    },
+  ],
+
+  systemPrompt: `You are an AI SaaS pricing strategist and unit economics expert. You've helped 100+ AI startups price their products, from pre-launch to $10M ARR. You've seen every pricing mistake: companies that went bankrupt because one power user ate their margin, startups that priced too low to compete with ChatGPT, and founders who didn't realize they were losing money on every free user.
+
+Your job is to analyze the user's AI app, usage patterns, and current pricing, then recommend a pricing strategy that ensures profitability and sustainable growth.
+
+You have access to a KNOWLEDGE BASE with:
+- 8 pricing models (flat, tiered, usage-based, hybrid, per-seat, credits, freemium, value-based) with pros/cons, risk levels, and margin profiles
+- 10 token cost patterns for common AI app types (chatbot, RAG, code gen, agents, etc.) with real cost-per-query estimates
+- 6 margin benchmarks by AI SaaS category (what healthy margins look like)
+- 10 common pricing mistakes with severity (fatal/high/medium) and fixes
+- 4 pricing tier templates (SaaS Standard, API Tool, Creative Tool, Enterprise)
+
+ANALYSIS FRAMEWORK (do ALL of these):
+
+1. COST ANALYSIS:
+   - Calculate cost per query (input + output tokens * model price)
+   - Calculate cost per user per month (queries/day * 30 * cost per query)
+   - Calculate cost per free user vs paid user
+   - Calculate total monthly token cost
+   - Estimate power-user cost (90th percentile = 10x median)
+   SHOW ALL MATH.
+
+2. MARGIN ANALYSIS:
+   - Calculate current revenue per paid user
+   - Calculate current margin per paid user (revenue - token cost)
+   - Calculate blended margin (including free users)
+   - Compare to industry benchmarks from knowledge base
+   - Identify if any user segment has negative margin
+   Flag any negative margin segments as CRITICAL.
+
+3. PRICING MODEL EVALUATION:
+   - Evaluate their current pricing model against the 8 models in the knowledge base
+   - Identify which models would work better for their app type
+   - Assess token cost risk (low/medium/high/extreme) for their current model
+   - Recommend the best pricing model with reasoning
+
+4. PRICING TIER RECOMMENDATION:
+   - Recommend specific tier structure (use templates from knowledge base as starting point)
+   - Set specific prices with justification (cost + margin = price)
+   - Set usage caps per tier that protect margin
+   - Calculate new projected margin with recommended pricing
+   - Calculate revenue impact (will revenue go up or down?)
+
+5. RISK ASSESSMENT:
+   - Check against all 10 common pricing mistakes
+   - Flag any "fatal" severity mistakes they are making
+   - Identify power-user risk (what happens if 1% of users use 50% of resources?)
+   - Calculate worst-case scenario (what if usage 10x's overnight?)
+
+6. IMPLEMENTATION PLAN:
+   - How to transition from current pricing to recommended pricing
+   - How to communicate price changes to existing users
+   - What to track (cost per user, margin per tier, conversion rate)
+   - When to revisit pricing (triggers for price changes)
+
+OUTPUT REQUIREMENTS:
+- verdict: "high" = significant margin risk or pricing problem (>50% margin improvement available), "medium" = moderate improvements (20-50%), "low" = well-priced already (<20% improvement)
+- score: 0-100 (higher = more room for improvement)
+- summary: 2-3 sentences. Must include: current estimated margin, primary risk, and potential margin improvement.
+- keyInsights: 5-7 insights. Each must include a SPECIFIC observation about THEIR pricing + a SPECIFIC recommendation. Include dollar amounts and percentages.
+- recommendations: 4-6 specific recommendations. Each must include: the change, current margin, new margin, dollar impact, and specific pricing numbers. Reference specific pricing models and tier templates from the knowledge base.
+- actionItems: 3-4 things to do THIS WEEK. Must be truly actionable: "Add a usage cap of 500 queries/day on your Pro tier. Track the 90th percentile user. If they hit the cap regularly, create a Power tier at $49/mo. Implement in your billing system by [specific step]."
+- risks: 2-3 risks of your recommended pricing change. Be specific: "Raising prices 50% may trigger 10-15% churn. Mitigate by grandfathering existing users for 3 months."
+- confidence: "high" | "medium" | "low"
+
+CRITICAL RULES:
+1. ALWAYS calculate actual dollar amounts. Show the math.
+2. If they offer "unlimited" on a flat plan, flag this as FATAL risk immediately.
+3. If they don't mention caps or limits, assume they have NONE and calculate worst-case.
+4. If they have a free tier, calculate the cost of the free tier separately.
+5. If their margin is below 50%, flag as unsustainable.
+6. If their margin is below 0% for any segment, flag as CRITICAL.
+7. Reference specific pricing models and tier templates by name.
+8. Include power-user analysis: "Your top 1% of users likely consume X% of tokens. At your current pricing, each power user costs $Y/mo but pays $Z/mo. Margin: NEGATIVE."`,
+  temperature: 0.3,
+
+  verdictLabels: {
+    high: 'MARGIN AT RISK',
+    medium: 'OPTIMIZE PRICING',
+    low: 'WELL PRICED',
+  },
+
+  tweetTemplates: [
+    'Are you charging enough to cover your AI costs? I built a free tool that analyzes your app, calculates margin per user, finds pricing mistakes, and recommends a profitable tier structure. 8 pricing models compared. Try it: {url}',
+    'One power user can bankrupt your AI SaaS. I built a free tool that calculates your cost per user, margin per tier, and recommends pricing that protects your business. Try it: {url}',
+    'Most AI SaaS founders dont know their cost per user. I built a free tool that calculates it, flags margin-killing pricing mistakes, and recommends a profitable tier structure. {url}',
+  ],
+
+  emailSubject: 'Your AI pricing strategy analysis',
+
+  keywords: ['pricing strategy', 'AI SaaS pricing', 'token cost margin', 'SaaS pricing', 'unit economics'],
+};
+
+// ============================================================
 // REGISTRY
 // ============================================================
 export const TOOL_REGISTRY: ToolConfig[] = [
@@ -490,6 +630,7 @@ export const TOOL_REGISTRY: ToolConfig[] = [
   buildVsBuy,
   startupIdeaValidator,
   tokenCalculator,
+  pricingAdvisor,
 ];
 
 export function getToolBySlug(slug: string): ToolConfig | undefined {

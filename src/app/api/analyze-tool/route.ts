@@ -4,6 +4,7 @@ import { getToolBySlug, ToolAnalysisResult } from '@/lib/tools-registry';
 import { BUILD_SCENARIOS } from '@/lib/build-vs-buy-db';
 import { STARTUP_PATTERNS } from '@/lib/idea-validator-db';
 import { MODELS, OPTIMIZATION_TIPS, MODEL_SELECTION_GUIDE, HIDDEN_COSTS } from '@/lib/token-calculator-db';
+import { PRICING_MODELS, TOKEN_COST_PATTERNS, MARGIN_BENCHMARKS, PRICING_MISTAKES, PRICING_TIER_TEMPLATES } from '@/lib/pricing-strategy-db';
 
 // Generic AI analysis endpoint for the Tool Engine.
 // Takes: { slug, input, fields: { industry, teamSize, etc. }, companyWebsite }
@@ -106,6 +107,26 @@ RULES:
       knowledgeBaseSection = `\n\n=== MODEL PRICING DATABASE (${MODELS.length} models) ===\n${modelText}\n\n=== OPTIMIZATION STRATEGIES (${OPTIMIZATION_TIPS.length}) ===\n${tipsText}\n\n=== MODEL SELECTION GUIDE (${MODEL_SELECTION_GUIDE.length} use cases) ===\n${guideText}\n\n=== HIDDEN COST WARNINGS (${HIDDEN_COSTS.length}) ===\n${hiddenCostsText}\n\nUse the pricing data to calculate their actual costs with math shown. Use the optimization strategies to find savings with dollar amounts. Use the selection guide to recommend the right models. Use the hidden cost warnings to audit their usage for costs they might not know about.`;
     }
 
+    // Inject knowledge base for pricing strategy advisor
+    if (tool.slug === 'pricing-strategy-advisor') {
+      const modelsText = PRICING_MODELS.map((m) =>
+        `- ${m.name}: ${m.description} | Risk: ${m.tokenCostRisk} | Best for: ${m.bestFor} | Avoid: ${m.avoidFor} | Margin: ${m.marginProfile} | Examples: ${m.examples.join(', ')}`
+      ).join('\n');
+      const costPatternsText = TOKEN_COST_PATTERNS.map((c) =>
+        `- ${c.appType}: ${c.avgInputTokens} in + ${c.avgOutputTokens} out tokens, ${c.typicalModel}, $${c.costPerQuery}/query, $${c.costPer1000Queries}/1K queries. ${c.notes}`
+      ).join('\n');
+      const benchmarksText = MARGIN_BENCHMARKS.map((b) =>
+        `- ${b.category}: ${b.grossMargin} margin. ${b.notes}. WARNING: ${b.warning}`
+      ).join('\n');
+      const mistakesText = PRICING_MISTAKES.map((m) =>
+        `- [${m.severity}] ${m.mistake}: ${m.impact} FIX: ${m.fix}`
+      ).join('\n');
+      const templatesText = PRICING_TIER_TEMPLATES.map((t) =>
+        `- ${t.template}: ${t.tiers.map(tier => `${tier.name} ${tier.price} (${tier.limits}, margin: ${tier.targetMargin})`).join('; ')}. ${t.notes}`
+      ).join('\n');
+      knowledgeBaseSection = `\n\n=== PRICING MODELS (${PRICING_MODELS.length}) ===\n${modelsText}\n\n=== TOKEN COST PATTERNS (${TOKEN_COST_PATTERNS.length}) ===\n${costPatternsText}\n\n=== MARGIN BENCHMARKS (${MARGIN_BENCHMARKS.length}) ===\n${benchmarksText}\n\n=== PRICING MISTAKES (${PRICING_MISTAKES.length}) ===\n${mistakesText}\n\n=== PRICING TIER TEMPLATES (${PRICING_TIER_TEMPLATES.length}) ===\n${templatesText}\n\nUse the pricing models to evaluate their current approach. Use token cost patterns to estimate their cost per query. Use margin benchmarks to assess if their margins are healthy. Use pricing mistakes to flag risks. Use tier templates as starting points for recommendations. ALWAYS show the math.`;
+    }
+
     const systemPrompt = `${tool.systemPrompt}${knowledgeBaseSection}\n\n${outputSchema}`;
 
     // 5. Build user message
@@ -117,7 +138,7 @@ RULES:
         { role: 'system', content: systemPrompt },
         { role: 'user', content: userMessage },
       ],
-      { json: true, temperature: tool.temperature ?? 0.3, maxTokens: (tool.slug === 'build-vs-buy' || tool.slug === 'startup-idea-validator' || tool.slug === 'token-cost-calculator') ? 3000 : 2000 }
+      { json: true, temperature: tool.temperature ?? 0.3, maxTokens: ['build-vs-buy', 'startup-idea-validator', 'token-cost-calculator', 'pricing-strategy-advisor'].includes(tool.slug) ? 3000 : 2000 }
     );
 
     if (!raw || !raw.trim()) {
