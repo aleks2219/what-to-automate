@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getZaiClient } from '@/lib/zai-config';
+import { groqTranscribe } from '@/lib/llm';
 
 export async function POST(req: NextRequest) {
   try {
@@ -32,15 +32,9 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const zai = getZaiClient();
+    const transcript = await groqTranscribe(audio);
 
-    const response = await zai.audio.asr.create({
-      file_base64: base64Data,
-    });
-
-    const transcript = (response as { text?: string }).text?.trim();
-
-    if (!transcript) {
+    if (!transcript || !transcript.trim()) {
       return NextResponse.json(
         { error: 'Could not transcribe audio. Please try again or type your description.' },
         { status: 422 }
@@ -48,8 +42,8 @@ export async function POST(req: NextRequest) {
     }
 
     return NextResponse.json({
-      transcript,
-      wordCount: transcript.split(/\s+/).length,
+      transcript: transcript.trim(),
+      wordCount: transcript.trim().split(/\s+/).length,
     });
   } catch (err: unknown) {
     console.error('Transcription error:', err);

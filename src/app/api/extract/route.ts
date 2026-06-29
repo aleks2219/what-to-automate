@@ -5,7 +5,7 @@ import {
   Performer,
 } from '@/lib/automation';
 import { ExtractionResult } from '@/lib/extraction-types';
-import { getZaiClient } from '@/lib/zai-config';
+import { groqChatCompletion } from '@/lib/llm';
 
 export type { ExtractionResult };
 
@@ -62,8 +62,6 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const zai = getZaiClient();
-
     const modeHint =
       mode === 'voice'
         ? 'The user recorded a voice memo describing a process they want to evaluate for automation. The text below is a transcription — it may contain filler words, hesitations, or incomplete sentences. Interpret generously.'
@@ -71,31 +69,23 @@ export async function POST(req: NextRequest) {
         ? 'The user pasted a document (could be an SOP, Slack thread, meeting notes, job description, or process documentation). Extract the process being described even if the document covers multiple topics.'
         : 'The user typed a brief description of a process they want to evaluate for automation.';
 
-    const completion = await zai.chat.completions.create({
-      messages: [
-        {
-          role: 'assistant',
-          content: SYSTEM_PROMPT,
-        },
-        {
-          role: 'user',
-          content: `${modeHint}\n\n--- USER INPUT ---\n${text.trim()}`,
-        },
-      ],
-      thinking: { type: 'disabled' },
-    });
+    const raw = await groqChatCompletion([
+      { role: 'system', content: SYSTEM_PROMPT },
+      {
+        role: 'user',
+        content: `${modeHint}\n\n--- USER INPUT ---\n${text.trim()}`,
+      },
+    ]);
 
-    const raw = completion.choices[0]?.message?.content?.trim();
-
-    if (!raw) {
+    if (!raw || !raw.trim()) {
       return NextResponse.json(
         { error: 'AI returned an empty response. Please try again.' },
         { status: 502 }
       );
     }
 
-    // Strip markdown fences if present
-    let jsonText = raw;
+    // Strip markdown fences if present (Groq's JSON mode usually avoids this, but be safe)
+    let jsonText = raw.trim();
     if (jsonText.startsWith('```')) {
       jsonText = jsonText.replace(/^```(?:json)?\s*\n?/, '').replace(/\n?```\s*$/, '');
     }
