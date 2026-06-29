@@ -1,0 +1,20 @@
+{
+  "name": "Token Cost Calculator",
+  "slug": "token-cost-calculator",
+  "url": "https://what-to-automate-dq1j.vercel.app/tools/token-cost-calculator",
+  "tagline": "How much are your AI tokens actually costing you?",
+  "key_features": [
+    "25+ models compared with real pricing",
+    "10 cost optimization strategies with savings estimates",
+    "Model selection guide for 10 common use cases",
+    "Calculates your actual monthly spend by model",
+    "Finds cheaper alternatives that maintain quality"
+  ],
+  "tweetTemplates": [
+    "How much are your AI tokens actually costing you? I built a free tool that analyzes your usage across providers, finds cheaper alternatives, and shows exactly how much you could save. 25+ models compared. Try it: {url}",
+    "Stop overpaying for AI tokens. I built a free calculator that breaks down your costs by model, finds cheaper alternatives, and shows 10 optimization strategies with real savings. Try it: {url}",
+    "Most teams waste 50-80% on AI tokens by using the wrong model. I built a free tool that analyzes your usage and finds savings. 25+ models compared with real pricing. {url}"
+  ],
+  "audience": "AI builders, developers, CTOs, engineering leaders",
+  "tone": "builder-direct"
+}

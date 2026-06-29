@@ -3,6 +3,7 @@ import { groqChatCompletion } from '@/lib/llm';
 import { getToolBySlug, ToolAnalysisResult } from '@/lib/tools-registry';
 import { BUILD_SCENARIOS } from '@/lib/build-vs-buy-db';
 import { STARTUP_PATTERNS } from '@/lib/idea-validator-db';
+import { MODELS, OPTIMIZATION_TIPS, MODEL_SELECTION_GUIDE } from '@/lib/token-calculator-db';
 
 // Generic AI analysis endpoint for the Tool Engine.
 // Takes: { slug, input, fields: { industry, teamSize, etc. }, companyWebsite }
@@ -88,6 +89,20 @@ RULES:
       knowledgeBaseSection = `\n\n=== STARTUP PATTERNS KNOWLEDGE BASE (${STARTUP_PATTERNS.length} patterns) ===\n${kbText}\n\nIf the user's idea matches any pattern above, reference the specific risks, success factors, and red flags for that pattern. Name specific competitors from the examples.`;
     }
 
+    // Inject knowledge base for token cost calculator
+    if (tool.slug === 'token-cost-calculator') {
+      const modelText = MODELS.map((m) =>
+        `- ${m.provider} ${m.model} | Input: $${m.inputPricePerM}/M | Output: $${m.outputPricePerM}/M | Cached: ${m.cachedInputPricePerM ? '$' + m.cachedInputPricePerM + '/M' : 'N/A'} | Context: ${(m.contextWindow / 1000).toFixed(0)}K | Quality: ${m.qualityTier} | Latency: ${m.latencyMs}ms | Speed: ${m.throughputTps} tps | Capabilities: ${m.capabilities.join(', ')} | Best for: ${m.bestFor} | Notes: ${m.notes}`
+      ).join('\n');
+      const tipsText = OPTIMIZATION_TIPS.map((t) =>
+        `- ${t.title}: ${t.description} (Savings: ${t.savings}, Providers: ${t.providers.join(', ')})`
+      ).join('\n');
+      const guideText = MODEL_SELECTION_GUIDE.map((g) =>
+        `- ${g.useCase}: ${g.recommended} (${g.reasoning}) Budget: ${g.budget}`
+      ).join('\n');
+      knowledgeBaseSection = `\n\n=== MODEL PRICING DATABASE (${MODELS.length} models) ===\n${modelText}\n\n=== OPTIMIZATION TIPS (${OPTIMIZATION_TIPS.length}) ===\n${tipsText}\n\n=== MODEL SELECTION GUIDE (${MODEL_SELECTION_GUIDE.length} use cases) ===\n${guideText}\n\nUse the pricing data to calculate their actual costs. Use the optimization tips to find savings. Use the selection guide to recommend the right models for their use case.`;
+    }
+
     const systemPrompt = `${tool.systemPrompt}${knowledgeBaseSection}\n\n${outputSchema}`;
 
     // 5. Build user message
@@ -99,7 +114,7 @@ RULES:
         { role: 'system', content: systemPrompt },
         { role: 'user', content: userMessage },
       ],
-      { json: true, temperature: tool.temperature ?? 0.3, maxTokens: (tool.slug === 'build-vs-buy' || tool.slug === 'startup-idea-validator') ? 3000 : 2000 }
+      { json: true, temperature: tool.temperature ?? 0.3, maxTokens: (tool.slug === 'build-vs-buy' || tool.slug === 'startup-idea-validator' || tool.slug === 'token-cost-calculator') ? 3000 : 2000 }
     );
 
     if (!raw || !raw.trim()) {

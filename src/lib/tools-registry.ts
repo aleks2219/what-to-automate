@@ -342,12 +342,120 @@ CRITICAL RULES:
 };
 
 // ============================================================
+// TOOL 4: AI Token Cost Calculator & Optimizer
+// ============================================================
+const tokenCalculator: ToolConfig = {
+  slug: 'token-cost-calculator',
+  name: 'Token Cost Calculator',
+  tagline: 'How much are your AI tokens actually costing you?',
+  description:
+    'Describe your AI usage across providers. Get a cost breakdown by model, compare alternatives, find savings with 10 optimization strategies, and learn when to use which model. Covers 25+ models from OpenAI, Anthropic, Google, Groq, DeepSeek, Mistral, Cohere, and more.',
+  category: 'calculator',
+  icon: 'Calculator',
+  iconColor: '#2563EB',
+  status: 'live',
+  createdAt: '2026-06-29',
+  featured: true,
+
+  inputLabel: 'Describe your AI usage',
+  inputPlaceholder: 'e.g., We use GPT-4o for our chatbot (about 500K input tokens and 100K output tokens per day), Claude 3.5 Sonnet for document analysis (about 1M tokens per week), and GPT-4o mini for classification (about 5M tokens per day). Looking to cut costs.',
+  inputHint: 'Include: which models you use, how many tokens (input + output), how often, and what you use them for. The more specific, the better the analysis.',
+  additionalFields: [
+    {
+      id: 'monthlyBudget',
+      label: 'Current monthly AI spend (optional)',
+      type: 'text',
+      placeholder: 'e.g., $2,000/mo, unknown',
+      helpText: 'Helps calculate your current cost and potential savings.',
+    },
+    {
+      id: 'priority',
+      label: 'What matters most?',
+      type: 'select',
+      options: [
+        { value: 'cost', label: 'Cut costs' },
+        { value: 'quality', label: 'Better quality' },
+        { value: 'speed', label: 'Faster response' },
+        { value: 'balance', label: 'Balance all three' },
+      ],
+      helpText: 'Affects which models we recommend.',
+    },
+  ],
+
+  systemPrompt: `You are an AI infrastructure cost optimization expert. You've managed token budgets for companies spending $1K to $1M/month on LLM APIs. You know every model's pricing, strengths, and weaknesses.
+
+The user describes their AI usage across providers. Your job is to:
+1. Calculate their actual monthly cost
+2. Find cheaper alternatives that maintain quality
+3. Recommend specific optimizations
+4. Educate them on model differences
+
+You have access to a KNOWLEDGE BASE with:
+- 25+ models with real pricing (input, output, cached, batch)
+- Capabilities, quality tiers, latency, throughput
+- 10 cost optimization strategies with savings estimates
+- Model selection guide for 10 common use cases
+
+ANALYSIS FRAMEWORK:
+
+1. COST BREAKDOWN: Calculate their current monthly spend by model. Show input cost, output cost, and total for each.
+
+2. ALTERNATIVE COMPARISON: For each model they use, find the cheapest equivalent that maintains quality. Consider:
+   - Same or better quality tier
+   - Same or better context window
+   - Same capabilities (vision, function calling, etc.)
+   - Price difference (input + output)
+
+3. OPTIMIZATION OPPORTUNITIES: Apply the 10 optimization strategies from the knowledge base. Calculate savings for each that applies:
+   - Prompt caching (50-90% on cached input)
+   - Batch API (50% for non-urgent)
+   - Model right-sizing (use cheaper models for simple tasks)
+   - Client-side caching (20-40% for repeated queries)
+   - Prompt compression (30-60% on prompt tokens)
+   - Complexity routing (60-80% by routing simple queries to cheap models)
+
+4. RECOMMENDED MODEL MIX: Suggest an optimal split of models for their use case. Example: "Use GPT-4o-mini for 80% of classification, Claude 3.5 Haiku for 15% of chat, GPT-4o for 5% of complex queries. Estimated savings: 70%."
+
+5. EDUCATION: Explain the key differences between models they are using and alternatives. Cover quality, speed, context window, and cost per 1M tokens.
+
+OUTPUT REQUIREMENTS:
+- verdict: "high" = significant savings available (>50%), "medium" = moderate savings (20-50%), "low" = already optimized (<20%)
+- score: 0-100 (higher = more savings available)
+- summary: 2-3 sentences with their estimated current monthly spend + potential savings
+- keyInsights: 4-6 insights about their current usage patterns, cost inefficiencies, and optimization opportunities
+- recommendations: 3-5 specific recommendations. For each, include: the change, the current cost, the new cost, and the savings. Name specific models with pricing.
+- actionItems: 2-4 things to do THIS WEEK to start saving. Specific steps.
+- risks: 1-3 risks of switching (quality degradation, migration effort, etc.)
+- confidence: "high" | "medium" | "low"
+
+CRITICAL: Always use REAL pricing from the knowledge base. Calculate actual dollar amounts. If they use 500K input tokens/day of GPT-4o, that's 500K * 30 days / 1M * $2.50 = $37.50/month on input alone. Show the math.`,
+  temperature: 0.3,
+
+  verdictLabels: {
+    high: 'BIG SAVINGS AVAILABLE',
+    medium: 'MODERATE SAVINGS',
+    low: 'ALREADY OPTIMIZED',
+  },
+
+  tweetTemplates: [
+    'How much are your AI tokens actually costing you? I built a free tool that analyzes your usage across providers, finds cheaper alternatives, and shows exactly how much you could save. 25+ models compared. Try it: {url}',
+    'Stop overpaying for AI tokens. I built a free calculator that breaks down your costs by model, finds cheaper alternatives, and shows 10 optimization strategies with real savings. Try it: {url}',
+    'Most teams waste 50-80% on AI tokens by using the wrong model. I built a free tool that analyzes your usage and finds savings. 25+ models compared with real pricing. {url}',
+  ],
+
+  emailSubject: 'Your AI token cost analysis',
+
+  keywords: ['token cost', 'AI cost', 'LLM pricing', 'token calculator', 'AI spend', 'model comparison'],
+};
+
+// ============================================================
 // REGISTRY
 // ============================================================
 export const TOOL_REGISTRY: ToolConfig[] = [
   autoscore,
   buildVsBuy,
   startupIdeaValidator,
+  tokenCalculator,
 ];
 
 export function getToolBySlug(slug: string): ToolConfig | undefined {
