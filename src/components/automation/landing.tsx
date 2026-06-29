@@ -11,6 +11,7 @@ import {
   Building2,
   LineChart,
   Sparkles,
+  Heart,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -18,9 +19,10 @@ import { Card, CardContent } from '@/components/ui/card';
 interface LandingProps {
   onStart: () => void;
   onManual: () => void;
+  onMatcher: () => void;
 }
 
-export function Landing({ onStart, onManual }: LandingProps) {
+export function Landing({ onStart, onManual, onMatcher }: LandingProps) {
   return (
     <div className="min-h-screen flex flex-col">
       {/* Header */}
@@ -76,6 +78,15 @@ export function Landing({ onStart, onManual }: LandingProps) {
                   <Sparkles className="w-4 h-4 mr-1.5" />
                   Try the AI-assisted way
                   <ArrowRight className="w-4 h-4 ml-1" />
+                </Button>
+                <Button
+                  size="lg"
+                  variant="outline"
+                  onClick={onMatcher}
+                  className="border-emerald-300 text-emerald-800 hover:bg-emerald-50 h-12 px-7 text-base"
+                >
+                  <Heart className="w-4 h-4 mr-1.5" />
+                  Browse tools (swipe)
                 </Button>
                 <Button
                   size="lg"
