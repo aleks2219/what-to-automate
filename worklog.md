@@ -255,3 +255,32 @@ Stage Summary:
 - BLOCKED ON USER: (1) confirm the 5 Z_AI_* env vars are set on Vercel (Settings → Environment Variables), (2) trigger a redeploy on Vercel if needed, (3) test the live site extraction.
 - If extraction still fails on Vercel, the most likely cause is that Vercel's servers can't reach internal-api.z.ai — in which case we pivot to OpenAI/Groq.
 - SECURITY REMINDER: Multiple PATs have been shared in chat history. User should regenerate/rotate all of them after the system is stable.
+
+---
+Task ID: 10
+Agent: main (Super Z)
+Task: Pivot from z-ai-web-dev-sdk to Groq after internal-api.z.ai proved unreachable from Vercel.
+
+Work Log:
+- User reported "fetch failed" error on live extraction. Confirmed via debug-zai endpoint that all env vars were set and getZaiClient() constructed successfully — the failure was at the network layer (Vercel can't reach internal-api.z.ai).
+- Pushed expanded debug endpoint to confirm DNS + network diagnosis. User confirmed it was a network issue.
+- User got a free Groq API key from https://console.groq.com (gsk_...).
+- Built src/lib/llm.ts — Groq helper using direct fetch() calls (no new dependencies). Includes:
+  - groqChatCompletion() — POST to https://api.groq.com/openai/v1/chat/completions with llama-3.3-70b-versatile, response_format: json_object for reliable JSON output
+  - groqTranscribe() — POST to https://api.groq.com/openai/v1/audio/transcriptions with whisper-large-v3-turbo for ASR
+- Refactored src/app/api/extract/route.ts — swapped z-ai-web-dev-sdk call for groqChatCompletion. Same system prompt + JSON schema, identical behavior.
+- Refactored src/app/api/transcribe/route.ts — swapped z-ai-web-dev-sdk ASR call for groqTranscribe.
+- Updated src/app/api/debug-zai/route.ts — now tests Groq credentials and a tiny "pong" LLM call.
+- Removed src/lib/zai-config.ts (no longer needed).
+- Updated .env.example — replaced 5 Z_AI_* vars with single GROQ_API_KEY.
+- Updated local .env with the Groq key.
+- Lint passes clean. Committed as d96568c. Pushed to GitHub.
+- LOCAL TEST RESULT: Groq returned 403 Forbidden even with the key. The request reached Groq's API server (JSON error response, not Cloudflare challenge), so reachability is fine — the API key is being rejected.
+- Possible causes: (a) key wasn't fully copied (truncation), (b) key needs activation in Groq console, (c) my sandbox IP region-blocked by Groq.
+- Decided to push anyway: Vercel's servers are in a different location (Washington D.C. per build logs) and may not have the same issue. If 403 persists on Vercel, the key is bad and user needs to regenerate it.
+
+Stage Summary:
+- Groq refactor is on GitHub main (commit d96568c).
+- User needs to: (1) remove the 5 Z_AI_* env vars on Vercel, (2) add GROQ_API_KEY, (3) trigger a redeploy.
+- After redeploy: visit https://what-to-automate-dq1j.vercel.app/api/debug-zai — if "llm_call" step shows "ok", we're golden. If it shows "fail: 403 Forbidden", the Groq key is bad and needs regeneration.
+- Once Groq works: test extraction end-to-end, then post the first tweet.
