@@ -430,3 +430,61 @@ Stage Summary:
 - BLOCKED ON USER: (1) trigger Vercel redeploy of all unpushed commits (v2, v2.1, v3 toolshed, v4 matcher), (2) test full flow on live site.
 - After deploy: test assessment flow (extraction → action plan → toolshed analysis → email capture) AND matcher flow (input → swipe deck → match results → email capture).
 - Once both flows verified working: post first tweet.
+
+---
+Task ID: 15
+Agent: main (Super Z)
+Task: AI-first restructure — expand to 125 tools, pivot from automation matcher to AI tool discovery.
+
+Work Log:
+- User feedback: 'expand the amount of tools to 1000 and focus on AI tools to make it a focus in discovering new AI tools'
+- Honest pushback: 1000 hand-curated tools not achievable in one session. Proposed 150-200 high-quality AI tools + restructure. User said 'go'.
+- Restructured tools-db.ts from 5 categories (integration/ai/rpa/custom/purpose-built) to 21 categories, with 16 new AI-focused categories: ai-coding, ai-writing, ai-image-video, ai-voice-audio, ai-chatbot, ai-search, ai-data, ai-sales, ai-support, ai-hr, ai-legal, ai-finance, ai-design, ai-productivity, workflow-ai, llm-api.
+- Expanded from 57 to 125 tools by adding ~70 new AI tools across all 16 categories:
+  - AI Coding (11): GitHub Copilot, Cursor, Replit, v0, Bolt, Lovable, Tabnine, Codeium, Sourcegraph Cody, Amazon Q, Windsurf
+  - AI Writing (8): Jasper, Writer, Copy.ai, Anyword, Sudowrite, Grammarly, Wordtune, Notion AI
+  - AI Image/Video (10): Midjourney, DALL-E 3, Runway, Pika, Synthesia, HeyGen, Ideogram, Leonardo, Flux, Krea
+  - AI Voice/Audio (8): ElevenLabs, Suno, Udio, Murf, PlayHT, AssemblyAI, Deepgram, Descript
+  - AI Chatbot/Agent (10): ChatGPT, Claude, Perplexity, Poe, Glean, Decagon, Forethought, Relevance AI, Beam AI, Lindy.ai
+  - AI Search (4): You.com, Phind, Elicit, Consensus
+  - AI Data (4): Julius AI, Akkio, Obviously AI, DataRobot
+  - AI Sales (4 new): Lavender, Regie, 11x, Mutiny
+  - AI Support (1 new): Ada
+  - AI HR (4 new): Beamery, Eightfold, Paradox, HireVue
+  - AI Legal (4): Harvey, Spellbook, Hebbia, Eve
+  - AI Finance (1 new): Vic.ai
+  - AI Design (4): Figma AI, Canva AI, Galileo, Uizard
+  - AI Productivity (5): Mem, Magical, Fireflies, Fathom, Otter
+  - Document AI (1 new): Rossum
+  - Browser Automation (1 new): MultiOn
+  - Workflow+AI (1 new): Zapier AI Agents
+  - LLM APIs (4 new): Cohere, Together AI, Replicate, Mistral
+- Each new tool includes: category, toolType, userEffort, tagline, website, pricing, free tier, bestFor, whatYouDo, capabilities (10+ capability tags each), industryFit, difficulty, timeToValue, logoColor, pros, cons. Many include aliases for matching.
+- Rewrote match-deck SYSTEM_PROMPT:
+  - Reframed from 'automation tool matcher' to 'AI tool discovery engine'
+  - Rule 6: PRIORITIZE AI-NATIVE TOOLS over generic SaaS
+  - Rule 7: NEVER recommend raw LLM APIs unless user wants to code
+  - Rule 10: whyItMatches must emphasize the AI capability
+  - Rule 12: Diversity — at least 3 different categories per deck
+- Updated SwipeDeck component copy:
+  - Header: 'AI Tool Discovery'
+  - Headline: 'Discover your AI tools'
+  - Input: 'What do you want to do?' with AI-focused placeholder examples
+  - Button: 'Discover AI tools'
+  - Loading: 'AI is finding the best AI tools for you'
+- Updated Landing page hero:
+  - New headline: 'Find the AI tools that actually fit your work'
+  - New subhead emphasizing swipe through AI tools with match scores
+  - Primary CTA is now 'Swipe through AI tools' (matcher is primary)
+  - Assessment demoted to secondary 'Full assessment' CTA
+  - New stats row: '125+ AI tools curated', '< 1 min to matches', 'Free'
+  - How it works: rewritten for swipe flow (describe -> swipe -> save)
+- Verified: bun run build succeeds in 8.7s, all 7 routes detected, lint clean.
+- Committed (fe54538). Pushed to GitHub.
+
+Stage Summary:
+- v5 is on GitHub main (commit fe54538).
+- 125 AI tools curated across 21 categories (16 AI-focused).
+- Matcher is now the primary flow on the landing page, reframed as AI tool discovery.
+- BLOCKED ON USER: (1) trigger Vercel redeploy, (2) test the matcher with various AI use cases (writing, image gen, transcription, etc.), (3) post first tweet once verified.
+- Future expansion paths (not built): community submissions, web scraping There's An AI For That / Futurepedia directories, paid Toolify API.
