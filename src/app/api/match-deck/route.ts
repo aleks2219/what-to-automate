@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { groqChatCompletion } from '@/lib/llm';
-import { TOOLS, Tool, Capability } from '@/lib/tools-db';
+import { TOOLS, Tool } from '@/lib/tools-db';
 
 // Match deck endpoint — generates a personalized Tinder-style deck of tools.
 // Takes: industry, whatToAutomate (one sentence), currentTools (optional).
@@ -25,11 +25,90 @@ export interface MatchDeckResponse {
   deckSummary: string; // 1 sentence summary of the deck
 }
 
-// Build catalog for AI — include capabilities so AI can match by capability
-const TOOL_CATALOG = TOOLS.map(
-  (t) =>
-    `- id: "${t.id}" | ${t.name} | category: ${t.category} | type: ${t.toolType} | effort: ${t.userEffort} | capabilities: ${t.capabilities.join(', ')} | best for: ${t.bestFor} | pricing: ${t.startingPrice}`
-).join('\n');
+// Pre-filter the tool catalog to keep Groq's token count under the 12K TPM free-tier limit.
+// Returns ~40 most relevant tools based on keyword overlap with the user's query.
+function filterToolsForQuery(query: string, industry?: string, currentTools?: string): Tool[] {
+  const queryLower = query.toLowerCase();
+  const industryLower = industry?.toLowerCase() || '';
+  const currentToolsLower = currentTools?.toLowerCase() || '';
+
+  // Combine all text we want to match against
+  const allSearchText = `${queryLower} ${industryLower} ${currentToolsLower}`;
+
+  // Tokenize the query into meaningful words (length > 3 to skip stopwords)
+  const queryWords = allSearchText
+    .split(/[\s,.;:!?'"/()-]+/)
+    .filter((w) => w.length > 3)
+    .map((w) => w.trim());
+
+  // Score each tool by counting keyword matches across its fields
+  const scored = TOOLS.map((tool) => {
+    const haystack = [
+      tool.name,
+      tool.tagline,
+      tool.bestFor,
+      tool.whatYouDo,
+      tool.category,
+      ...tool.capabilities,
+      ...tool.industryFit,
+      ...(tool.aliases || []),
+    ]
+      .join(' ')
+      .toLowerCase();
+
+    let score = 0;
+    for (const word of queryWords) {
+      if (haystack.includes(word)) {
+        score += 1;
+      }
+    }
+
+    // Bonus: if tool's industryFit includes the user's industry
+    if (industryLower && tool.industryFit.some((i) => i.toLowerCase().includes(industryLower))) {
+      score += 2;
+    }
+
+    // Penalty: if tool is in user's current tools list, deprioritize
+    if (currentToolsLower) {
+      const toolNames = currentToolsLower.split(/[\s,]+/).filter(Boolean);
+      if (toolNames.some((name) => tool.name.toLowerCase().includes(name) || name.includes(tool.name.toLowerCase()))) {
+        score -= 5;
+      }
+    }
+
+    return { tool, score };
+  });
+
+  // Take top 40 by score, but always include some defaults if scoring is low
+  const top = scored
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 40)
+    .map((s) => s.tool);
+
+  // If we got very few high-scoring tools, pad with diverse category representatives
+  if (top.length < 20) {
+    const seenCategories = new Set(top.map((t) => t.category));
+    for (const tool of TOOLS) {
+      if (top.length >= 40) break;
+      if (!top.includes(tool) && !seenCategories.has(tool.category)) {
+        top.push(tool);
+        seenCategories.add(tool.category);
+      }
+    }
+  }
+
+  return top;
+}
+
+// Build a filtered catalog string for a specific query
+function buildFilteredCatalog(tools: Tool[]): string {
+  return tools
+    .map(
+      (t) =>
+        `- id: "${t.id}" | ${t.name} | category: ${t.category} | type: ${t.toolType} | effort: ${t.userEffort} | capabilities: ${t.capabilities.join(', ')} | best for: ${t.bestFor} | pricing: ${t.startingPrice}`
+    )
+    .join('\n');
+}
 
 const SYSTEM_PROMPT = `You are an expert AI tool discovery engine. Your job is to help users discover the AI tools that best fit their workflow — like a smart friend who knows every AI product on the market.
 
@@ -62,10 +141,7 @@ RULES:
 9. If user provided currentTools, AVOID recommending tools they already have. Instead, find complementary AI tools or alternatives.
 10. whyItMatches MUST be personalized AND emphasize the AI capability. Don't say "This tool is great for automation." Say "Since you mentioned wanting to automate lead routing in your SaaS company, Clay uses AI to enrich 75+ data sources in real-time..."
 11. highlight should be a punchy tagline that captures what makes this AI tool special. Think dating app bio, not product page.
-12. For diversity, try to include tools from at least 3 different categories when possible (e.g., don't return 5 AI writing tools — mix writing + chatbot + productivity).
-
-=== TOOL CATALOG ===
-${TOOL_CATALOG}`;
+12. For diversity, try to include tools from at least 3 different categories when possible (e.g., don't return 5 AI writing tools — mix writing + chatbot + productivity).`;
 
 export async function POST(req: NextRequest) {
   try {
@@ -101,9 +177,24 @@ ${body.whatToAutomate.trim()}
 
 Pick the 5-8 best matching AI tools from the catalog. Personalize whyItMatches to their specific use case, emphasizing the AI capability that fits.`;
 
+    // Pre-filter the catalog to stay under Groq's 12K TPM limit.
+    // With 256 tools, the full catalog is ~19K tokens — too big.
+    // Filter to ~40 most relevant tools based on keyword overlap.
+    const filteredTools = filterToolsForQuery(
+      body.whatToAutomate,
+      body.industry,
+      body.currentTools
+    );
+    const filteredCatalog = buildFilteredCatalog(filteredTools);
+
+    const fullSystemPrompt = `${SYSTEM_PROMPT}
+
+=== TOOL CATALOG (top ${filteredTools.length} most relevant out of ${TOOLS.length} total) ===
+${filteredCatalog}`;
+
     const raw = await groqChatCompletion(
       [
-        { role: 'system', content: SYSTEM_PROMPT },
+        { role: 'system', content: fullSystemPrompt },
         { role: 'user', content: userMessage },
       ],
       { json: true, temperature: 0.4, maxTokens: 2500 }
