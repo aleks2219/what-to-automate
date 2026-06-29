@@ -9,15 +9,11 @@ import { groqChatCompletion } from '@/lib/llm';
 import { TOOLS } from '@/lib/tools-db';
 import { CASE_STUDIES } from '@/lib/case-studies-db';
 import { WORKFLOW_TEMPLATES } from '@/lib/workflow-templates-db';
+import { filterToolsForQuery, buildFilteredCatalog } from '@/lib/tool-filter';
 
 export type { ExtractionResult };
 
-// Build a catalog string the AI uses to reference tools, case studies, and templates
-const TOOL_CATALOG = TOOLS.map(
-  (t) =>
-    `- id: "${t.id}" | ${t.name} | category: ${t.category} | type: ${t.toolType} | user effort: ${t.userEffort} | best for: ${t.bestFor} | what user does: ${t.whatYouDo} | pricing: ${t.startingPrice}`
-).join('\n');
-
+// Catalogs for case studies + templates (small enough to send in full)
 const CASE_STUDY_CATALOG = CASE_STUDIES.map(
   (c) => `- id: "${c.id}" | ${c.title} | industry: ${c.industry} | process: ${c.processAutomated} | tools: ${c.toolsUsed.join(', ')} | tags: ${c.tags.join(', ')}`
 ).join('\n');
@@ -141,9 +137,6 @@ TOOLSHED ANALYSIS RULES (CRITICAL — read carefully):
     - The verdict may shift toward AUTOMATE_NOW since the implementation cost is near zero
 21. If no current tools provided, return empty arrays for currentToolAnalysis, consolidationOpportunities, toolshedGaps. Set usesExistingTools=false and toolshedSavings='None identified'.
 
-=== TOOL CATALOG ===
-${TOOL_CATALOG}
-
 === CASE STUDY CATALOG ===
 ${CASE_STUDY_CATALOG}
 
@@ -180,9 +173,19 @@ export async function POST(req: NextRequest) {
       ? `\n\n--- USER'S CURRENT TOOLS ---\n${currentTools.trim()}\n\nAnalyze each tool above per the toolshed analysis rules. Determine if their existing tools already cover this process.`
       : '\n\n--- USER\'S CURRENT TOOLS ---\n(None provided — skip toolshed analysis, return empty arrays.)';
 
+    // Pre-filter the 256-tool catalog to ~40 most relevant tools based on
+    // keyword overlap with the user's input. Keeps Groq request under 12K TPM.
+    const filteredTools = filterToolsForQuery(text, undefined, currentTools);
+    const filteredToolCatalog = buildFilteredCatalog(filteredTools);
+
+    const fullSystemPrompt = `${SYSTEM_PROMPT}
+
+=== TOOL CATALOG (top ${filteredTools.length} most relevant out of ${TOOLS.length} total) ===
+${filteredToolCatalog}`;
+
     const raw = await groqChatCompletion(
       [
-        { role: 'system', content: SYSTEM_PROMPT },
+        { role: 'system', content: fullSystemPrompt },
         {
           role: 'user',
           content: `${modeHint}${currentToolsSection}\n\n--- USER INPUT ---\n${text.trim()}`,

@@ -300,11 +300,73 @@ function MatchedToolCard({
                   <Target className="w-3 h-3 mr-1" />
                   {matchScore}% match
                 </Badge>
+                <Badge variant="outline" className="text-xs">
+                  {item.tool.category.replace(/-/g, ' ')}
+                </Badge>
               </div>
               <div className="text-xs text-stone-500 mb-2">{item.tool.tagline}</div>
               <p className="text-sm text-stone-700 leading-relaxed mb-3">
                 {item.match.whyItMatches}
               </p>
+
+              {/* Best for */}
+              <div className="mb-3">
+                <div className="text-xs font-medium text-stone-500 uppercase tracking-wider mb-1">
+                  Best for
+                </div>
+                <p className="text-sm text-stone-700 leading-relaxed">{item.tool.bestFor}</p>
+              </div>
+
+              {/* What you do */}
+              <div className="mb-3 p-3 bg-stone-50 rounded-md border border-stone-100">
+                <div className="text-xs font-medium text-stone-700 uppercase tracking-wider mb-1">
+                  What you do
+                </div>
+                <p className="text-sm text-stone-700 leading-relaxed">{item.tool.whatYouDo}</p>
+              </div>
+
+              {/* Capabilities */}
+              {item.tool.capabilities.length > 0 && (
+                <div className="mb-3">
+                  <div className="text-xs font-medium text-stone-500 uppercase tracking-wider mb-1.5">
+                    Capabilities
+                  </div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {item.tool.capabilities.slice(0, 6).map((cap) => (
+                      <Badge key={cap} variant="outline" className="text-xs">
+                        {cap.replace(/-/g, ' ')}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Pros + Cons */}
+              <div className="grid grid-cols-2 gap-3 mb-3 pt-2 border-t border-stone-100">
+                <div>
+                  <div className="text-xs font-medium text-emerald-700 mb-1">Pros</div>
+                  <ul className="space-y-0.5">
+                    {item.tool.pros.slice(0, 3).map((p, i) => (
+                      <li key={i} className="text-xs text-stone-600 flex items-start gap-1">
+                        <span className="text-emerald-600">+</span>
+                        <span>{p}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+                <div>
+                  <div className="text-xs font-medium text-amber-700 mb-1">Cons</div>
+                  <ul className="space-y-0.5">
+                    {item.tool.cons.slice(0, 3).map((c, i) => (
+                      <li key={i} className="text-xs text-stone-600 flex items-start gap-1">
+                        <span className="text-amber-600">−</span>
+                        <span>{c}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+
               <div className="flex items-center gap-2 flex-wrap">
                 <Badge variant="outline" className="text-xs">
                   {item.tool.startingPrice}
