@@ -14,7 +14,8 @@ export type { ExtractionResult };
 
 // Build a catalog string the AI uses to reference tools, case studies, and templates
 const TOOL_CATALOG = TOOLS.map(
-  (t) => `- id: "${t.id}" | ${t.name} | category: ${t.category} | best for: ${t.bestFor} | pricing: ${t.startingPrice}`
+  (t) =>
+    `- id: "${t.id}" | ${t.name} | category: ${t.category} | type: ${t.toolType} | user effort: ${t.userEffort} | best for: ${t.bestFor} | what user does: ${t.whatYouDo} | pricing: ${t.startingPrice}`
 ).join('\n');
 
 const CASE_STUDY_CATALOG = CASE_STUDIES.map(
@@ -75,11 +76,23 @@ CRITICAL RULES:
 5. For automationPercentage, default to 70 if process seems well-defined, 50 if it involves significant judgment or unstructured data.
 6. For approach: if user mentions 'documents', 'emails', 'unstructured text', 'classify', 'extract', 'summarize' -> recommend 'ai'. If 'legacy system', 'mainframe', 'no API', 'SAP', 'Oracle EBS' -> 'rpa'. If 'between tools', 'Slack to', 'sync', 'connect', 'Zapier' -> 'integration'. If 'core system', 'complex logic', 'customer-facing product', 'scale to thousands' -> 'custom'.
 7. Adjacent processes should be plausible given the context, not generic. If they describe invoice processing, suggest 'expense approval' and 'vendor onboarding', not 'everything in finance'.
-8. For recommendedToolIds: pick 2-3 tools. If approach is 'integration', prefer make/zapier/n8n. If 'ai', pair an LLM (claude-api/openai-api) with an integration tool. If 'rpa', pick from power-automate/uipath/automation-anywhere. If 'custom', pick from retool/bubble/xano/supabase/airtable + possibly an LLM.
-9. For caseStudyIds: only pick IDs that exist in the catalog. If none match well, return an empty array.
-10. For templateIds: only pick IDs that exist in the catalog. If none match, return an empty array.
-11. For firstStep: be concrete and specific. Don't say 'evaluate tools' — say 'Sign up for Make.com free plan and connect your email'.
-12. For budgetBreakdown: provide realistic estimates. If implementation is internal, estimate hours × loaded hourly rate.
+
+TOOL SELECTION RULES (CRITICAL — read carefully):
+8. PREFER END-TO-END SOLUTIONS over building blocks. The user is a senior leader, not a developer. Recommend tools where they CONFIGURE rather than BUILD.
+9. NEVER recommend raw AI APIs (claude-api, openai-api) as standalone solutions. They are building blocks, not solutions. If you recommend Claude/OpenAI capabilities, do so via a wrapper tool like Make.com or Zapier that has built-in AI modules — never as a standalone tool.
+10. PREFER tools with these characteristics (in priority order):
+    a. PURPOSE-BUILT tools that solve the specific problem (e.g., for invoice processing: lido, nanonets, docparser; for lead enrichment: clay; for web scraping: browse-ai, bardeen; for browser automation: axiom)
+    b. INTEGRATION tools with built-in AI (make, zapier — they have Claude/OpenAI modules built in, no API key needed)
+    c. INTEGRATION tools without AI (n8n, workato, pipedream, celigo)
+    d. RPA tools (power-automate, uipath) for legacy systems without APIs
+    e. CUSTOM tools (retool, bubble, airtable) only when the process is genuinely unique
+    f. NEVER recommend raw API tools (claude-api, openai-api) as the primary solution
+11. Always pick 2-3 tools. Prefer a primary tool + a complementary tool.
+12. For caseStudyIds: only pick IDs that exist in the catalog. If none match well, return an empty array.
+13. For templateIds: only pick IDs that exist in the catalog. If none match, return an empty array.
+14. For firstStep: be concrete and specific to the FIRST tool you recommend. Don't say 'evaluate tools' — say 'Sign up for Lido's free plan, upload 5 sample invoices, and watch it extract vendor + amount automatically'.
+15. For budgetBreakdown: provide realistic estimates. If implementation is via a purpose-built SaaS, implementation cost is low (mostly configuration). If custom dev, estimate hours × loaded hourly rate.
+16. For toolRationale: explain WHY these specific tools fit the user's process characteristics AND why they minimize the user's effort. Mention what the user actually does (upload, configure, build visually) rather than abstract capabilities.
 
 === TOOL CATALOG ===
 ${TOOL_CATALOG}

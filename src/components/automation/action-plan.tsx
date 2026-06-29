@@ -168,14 +168,26 @@ function ToolCard({ tool, delay = 0 }: { tool: Tool; delay?: number }) {
     ai: 'bg-purple-50 text-purple-700 border-purple-200',
     rpa: 'bg-amber-50 text-amber-700 border-amber-200',
     custom: 'bg-stone-100 text-stone-700 border-stone-200',
+    'purpose-built': 'bg-emerald-50 text-emerald-700 border-emerald-200',
   };
+
+  const effortLabels: Record<string, { label: string; color: string }> = {
+    'upload-and-go': { label: 'Upload & go', color: 'bg-emerald-100 text-emerald-800' },
+    configure: { label: 'Configure', color: 'bg-blue-100 text-blue-800' },
+    'build-visually': { label: 'Build visually', color: 'bg-amber-100 text-amber-800' },
+    'write-code': { label: 'Write code', color: 'bg-red-100 text-red-800' },
+  };
+
+  const effort = effortLabels[tool.userEffort];
 
   return (
     <motion.div
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3, delay }}
-      className="border border-stone-200 rounded-lg overflow-hidden hover:border-stone-300 transition-colors bg-white"
+      className={`border rounded-lg overflow-hidden hover:border-stone-300 transition-colors bg-white ${
+        tool.toolType === 'building-block' ? 'border-amber-200' : 'border-stone-200'
+      }`}
     >
       {/* Header with logo placeholder + name */}
       <div className="p-4 border-b border-stone-100">
@@ -187,7 +199,19 @@ function ToolCard({ tool, delay = 0 }: { tool: Tool; delay?: number }) {
             {tool.name.slice(0, 2).toUpperCase()}
           </div>
           <div className="flex-1 min-w-0">
-            <div className="font-semibold text-stone-900 truncate">{tool.name}</div>
+            <div className="flex items-center gap-2 flex-wrap">
+              <div className="font-semibold text-stone-900 truncate">{tool.name}</div>
+              {tool.toolType === 'building-block' && (
+                <Badge variant="outline" className="text-xs bg-amber-50 text-amber-700 border-amber-200">
+                  Building block
+                </Badge>
+              )}
+              {tool.toolType === 'solution' && tool.category === 'purpose-built' && (
+                <Badge variant="outline" className="text-xs bg-emerald-50 text-emerald-700 border-emerald-200">
+                  Purpose-built
+                </Badge>
+              )}
+            </div>
             <div className="text-xs text-stone-500 mt-0.5 line-clamp-2">{tool.tagline}</div>
           </div>
         </div>
@@ -195,9 +219,10 @@ function ToolCard({ tool, delay = 0 }: { tool: Tool; delay?: number }) {
 
       {/* Body */}
       <div className="p-4 space-y-3">
+        {/* Badges row */}
         <div className="flex items-center gap-2 flex-wrap">
-          <Badge variant="outline" className={`${categoryColors[tool.category]} text-xs`}>
-            {tool.category.toUpperCase()}
+          <Badge variant="outline" className={`text-xs ${effort.color}`}>
+            {effort.label}
           </Badge>
           <Badge variant="outline" className="text-xs">
             {tool.startingPrice}
@@ -206,6 +231,14 @@ function ToolCard({ tool, delay = 0 }: { tool: Tool; delay?: number }) {
             <Clock className="w-3 h-3 mr-1" />
             {tool.timeToValue}
           </Badge>
+        </div>
+
+        {/* What you actually do — the headline feature */}
+        <div className="p-3 bg-stone-50 rounded-md border border-stone-100">
+          <div className="text-xs font-medium text-stone-700 uppercase tracking-wider mb-1.5">
+            What you do
+          </div>
+          <p className="text-sm text-stone-700 leading-relaxed">{tool.whatYouDo}</p>
         </div>
 
         <div>
