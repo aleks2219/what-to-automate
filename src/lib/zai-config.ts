@@ -1,6 +1,6 @@
-// Helper to write the .z-ai-config file from environment variables.
-// On Vercel (and other serverless platforms), we can't commit the config file,
-// so we generate it at runtime from env vars before calling ZAI.create().
+// Construct a ZAI client directly from environment variables.
+// This bypasses the SDK's file-based config loading (which doesn't work on
+// Vercel serverless functions because the filesystem is read-only).
 //
 // Required env vars:
 //   Z_AI_BASE_URL  — e.g. https://internal-api.z.ai/v1
@@ -9,14 +9,12 @@
 //   Z_AI_CHAT_ID   — chat session ID
 //   Z_AI_USER_ID   — user ID
 
-import fs from 'node:fs';
-import path from 'node:path';
-import os from 'node:os';
+import ZAI from 'z-ai-web-dev-sdk';
 
-let configInitialized = false;
+let cachedClient: any = null;
 
-export function ensureZaiConfig() {
-  if (configInitialized) return;
+export function getZaiClient() {
+  if (cachedClient) return cachedClient;
 
   const baseUrl = process.env.Z_AI_BASE_URL;
   const apiKey = process.env.Z_AI_API_KEY;
@@ -30,24 +28,12 @@ export function ensureZaiConfig() {
     );
   }
 
-  const config = {
-    baseUrl,
-    apiKey,
-    ...(chatId ? { chatId } : {}),
-    ...(userId ? { userId } : {}),
-    ...(token ? { token } : {}),
-  };
+  const config: Record<string, string> = { baseUrl, apiKey };
+  if (token) config.token = token;
+  if (chatId) config.chatId = chatId;
+  if (userId) config.userId = userId;
 
-  // Write to home directory (writable on Vercel serverless functions)
-  const configPath = path.join(os.homedir(), '.z-ai-config');
-  try {
-    fs.writeFileSync(configPath, JSON.stringify(config), { mode: 0o600 });
-    configInitialized = true;
-  } catch (err) {
-    // If home dir isn't writable, try /tmp
-    const tmpPath = '/tmp/.z-ai-config';
-    fs.writeFileSync(tmpPath, JSON.stringify(config), { mode: 0o600 });
-    // Can't easily redirect the SDK to read from /tmp, but at least we tried
-    configInitialized = true;
-  }
+  // Construct directly — skips the SDK's file-based loadConfig() entirely.
+  cachedClient = new ZAI(config);
+  return cachedClient;
 }

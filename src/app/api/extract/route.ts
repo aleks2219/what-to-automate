@@ -1,12 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import ZAI from 'z-ai-web-dev-sdk';
 import {
   AutomationApproach,
   Frequency,
   Performer,
 } from '@/lib/automation';
 import { ExtractionResult } from '@/lib/extraction-types';
-import { ensureZaiConfig } from '@/lib/zai-config';
+import { getZaiClient } from '@/lib/zai-config';
 
 export type { ExtractionResult };
 
@@ -63,8 +62,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    ensureZaiConfig();
-    const zai = await ZAI.create();
+    const zai = getZaiClient();
 
     const modeHint =
       mode === 'voice'

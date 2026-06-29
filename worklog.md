@@ -213,3 +213,23 @@ Stage Summary:
 - Recommended path: try the stopgap first (quick test), pivot to OpenAI/Groq if it fails.
 - For the pivot: the extract route would need to swap z-ai-web-dev-sdk for openai SDK, using GPT-4o-mini (~$0.001/extraction) or Groq free tier (Llama 3.3 70B, free).
 - BLOCKED ON USER: (1) create new PAT to push the fix, (2) add 5 Z_AI_* env vars on Vercel, (3) disable Vercel Authentication, (4) test if extraction works on the live site.
+
+---
+Task ID: 8
+Agent: main (Super Z)
+Task: Push the z-ai-config fix to GitHub using a fresh PAT from user.
+
+Work Log:
+- User provided new PAT: [REDACTED-PAT]
+- Configured remote URL with PAT embedded (username:token@github.com format).
+- Pushed: 7e2d805..a932f08 main -> main (success).
+- Immediately reset remote URL back to plain HTTPS (no token).
+- Vercel will auto-redeploy from this push within ~60 seconds.
+
+Stage Summary:
+- Fix is live on GitHub main branch.
+- Vercel will pick up the new commit and redeploy automatically.
+- USER STILL NEEDS TO: (1) add 5 Z_AI_* env vars on Vercel, (2) disable Vercel Authentication, (3) test the site.
+- After Vercel redeploy + env vars added, the AI extraction should work (assuming internal-api.z.ai is reachable from Vercel).
+- If extraction still fails after the redeploy, the error message will tell us whether it's (a) env vars not set, (b) network issue reaching internal-api.z.ai, or (c) JWT token expired. Each has a different fix.
+- Delete the new PAT at https://github.com/settings/tokens once confirmed push succeeded.
