@@ -1,0 +1,20 @@
+{
+  "name": "Build vs. Buy",
+  "slug": "build-vs-buy",
+  "url": "https://what-to-automate-dq1j.vercel.app/tools/build-vs-buy",
+  "tagline": "Should you build it yourself or buy an existing tool?",
+  "key_features": [
+    "Covers 27+ common scenarios (auth, CMS, e-commerce, CRM, payments...)",
+    "Specific SaaS alternatives with real pricing",
+    "3-year cost comparison (build vs buy TCO)",
+    "Actionable next steps with specific URLs",
+    "AI-powered, 5 second analysis"
+  ],
+  "tweetTemplates": [
+    "Build vs. Buy — the eternal debate. I built a free tool that analyzes your situation and gives specific tool recommendations with pricing, 3-year cost comparison, and action items. Try it: {url}",
+    "Stop debating build vs. buy in meetings. Describe what you need → get instant analysis with specific SaaS alternatives, build cost estimates, and a clear verdict. Free: {url}",
+    "Should you build it or buy it? I built a free AI tool that gives you specific tool names + pricing + 3-year cost comparison + maintenance estimate. No more guessing. {url}"
+  ],
+  "audience": "CTOs, engineering leaders, product managers, founders",
+  "tone": "builder-direct"
+}

@@ -1,95 +1,56 @@
-// Generate a tweet draft for a tool.
-// Usage: node scripts/tweet-draft.mjs <tool-name> [template-index]
-// Example: node scripts/tweet-draft.mjs autoscore
+// Generate a tweet draft for any tool in the registry.
+// Usage: node scripts/tweet-draft.mjs <tool-slug> [template-index]
+// Example: node scripts/tweet-draft.mjs build-vs-buy
+//          node scripts/tweet-draft.mjs autoscore 0
 
 import fs from 'node:fs';
 import path from 'node:path';
 
-const toolName = process.argv[2];
-const templateIdx = process.argv[3] ? parseInt(process.argv[3], 10) : null;
+const slug = process.argv[2];
+const templateIdx = process.argv[3] ? parseInt(process.argv[3], 10) : 0;
 
-if (!toolName) {
-  console.error('Usage: node scripts/tweet-draft.mjs <tool-name> [template-index]');
+if (!slug) {
+  console.error('Usage: node scripts/tweet-draft.mjs <tool-slug> [template-index]');
   console.error('Available tools:');
-  const toolsDir = path.resolve(process.cwd(), 'tweets/tools');
-  if (fs.existsSync(toolsDir)) {
-    const tools = fs.readdirSync(toolsDir).filter((f) => f.endsWith('.json'));
-    tools.forEach((t) => console.error(`  - ${t.replace(/\.json$/, '')}`));
-  }
+  console.error('  - autoscore (Automation Evaluator)');
+  console.error('  - build-vs-buy (Build vs. Buy)');
+  console.error('  - startup-idea-validator (Idea Validator — coming soon)');
+  console.error('');
+  console.error('Note: This script reads from tweets/tools/<slug>.json for tweet metadata.');
   process.exit(1);
 }
 
-const toolPath = path.resolve(process.cwd(), 'tweets/tools', `${toolName}.json`);
-if (!fs.existsSync(toolPath)) {
-  console.error(`No metadata file found at tweets/tools/${toolName}.json`);
-  console.error('Create one with: name, url, tagline, key_features, example_use_case');
+// Load tool metadata
+const toolPath = path.resolve(process.cwd(), 'tweets/tools', `${slug}.json`);
+const registryMap = {
+  'autoscore': 'autoscore',
+  'automation-evaluator': 'autoscore',
+  'build-vs-buy': 'build-vs-buy',
+  'startup-idea-validator': 'startup-idea-validator',
+};
+
+const actualSlug = registryMap[slug] || slug;
+const actualPath = path.resolve(process.cwd(), 'tweets/tools', `${actualSlug}.json`);
+
+if (!fs.existsSync(actualPath)) {
+  console.error(`No metadata file found at tweets/tools/${actualSlug}.json`);
+  console.error('Create one with: name, url, tagline, key_features, tweetTemplates');
   process.exit(1);
 }
 
-const tool = JSON.parse(fs.readFileSync(toolPath, 'utf8'));
+const tool = JSON.parse(fs.readFileSync(actualPath, 'utf8'));
 
-// Validate required fields
-const required = ['name', 'url', 'tagline', 'key_features'];
-const missing = required.filter((k) => !tool[k]);
-if (missing.length > 0) {
-  console.error(`Tool metadata missing required fields: ${missing.join(', ')}`);
-  process.exit(1);
-}
-
-// ============================================================
-// Tweet templates — "builder-direct" tone
-// (short, factual, founder-led — per user preference)
-// ============================================================
-
-const templates = [
-  // Template 0: lead with the question
-  (t) => `${t.tagline}
-
-I built a free tool that takes one sentence about a workflow and gives you a leadership-ready assessment: verdict, ROI, payback, risks, and rollout roadmap.
-
-Try it: ${t.url}`,
-
-  // Template 1: lead with the pain point
-  (t) => `Most leaders automate the wrong things.
-
-I built a tool to help: describe a process in one sentence (or paste an SOP, or just talk) → get a verdict, ROI, payback period, risks, and a phased roadmap.
-
-Free, no signup: ${t.url}`,
-
-  // Template 2: lead with what it does
-  (t) => `New tool: ${t.name}
-
-- ${t.tagline}
-- Input: one sentence, a pasted doc, or a 30s voice memo
-- Output: verdict, ROI, payback, risks, rollout roadmap
-- Export to PDF for board memos
-
-${t.url}`,
-
-  // Template 3: lead with example
-  (t) => `"${t.example_use_case || 'Should you automate that process?'}"
-
-That's all the input my new tool needs. It extracts the rest with AI and gives you a decision-ready report.
-
-${t.url}`,
-
-  // Template 4: short + punchy
-  (t) => `Should you automate that process?
-
-I built a tool that answers it in 60 seconds. One sentence in, leadership-ready report out.
-
-${t.url}`,
+// Use tweet templates from the tool config, or fall back to defaults
+const templates = tool.tweetTemplates || [
+  `${tool.tagline}\n\nTry it: ${tool.url}`,
+  `New tool: ${tool.name}\n\n${tool.tagline}\n\n${tool.url}`,
+  `I built ${tool.name}. ${tool.tagline}\n\nFree, no login: ${tool.url}`,
 ];
 
-const idx = templateIdx !== null ? templateIdx : 0;
-if (idx < 0 || idx >= templates.length) {
-  console.error(`Invalid template index. Must be 0–${templates.length - 1}.`);
-  process.exit(1);
-}
+const idx = Math.min(templateIdx, templates.length - 1);
+const tweetText = templates[idx].replace('{url}', tool.url).replace('{name}', tool.name).replace('{tagline}', tool.tagline);
 
-const tweetText = templates[idx](tool);
-
-// Validate length (X limit is 280 for non-premium accounts)
+// Validate length
 const length = [...tweetText].length;
 if (length > 280) {
   console.warn(`⚠️  Tweet is ${length} characters (X limit is 280). Trim before posting.`);
@@ -99,10 +60,10 @@ if (length > 280) {
 const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
 const draftDir = path.resolve(process.cwd(), 'tweets/drafts');
 fs.mkdirSync(draftDir, { recursive: true });
-const draftPath = path.join(draftDir, `${timestamp}-${toolName}-t${idx}.md`);
+const draftPath = path.join(draftDir, `${timestamp}-${actualSlug}-t${idx}.md`);
 
 const draftContent = `---
-tool: ${toolName}
+tool: ${actualSlug}
 tool_name: "${tool.name}"
 tool_url: ${tool.url}
 template: ${idx}
@@ -119,9 +80,9 @@ ${tweetText}
 
 # Notes for review
 
-- Character count: ${length} / 280
+- Character count: ${length} / 280 ${length > 280 ? '⚠️  TOO LONG' : '✓'}
 - Template: ${idx} of ${templates.length - 1}
-- To preview another template: \`node scripts/tweet-draft.mjs ${toolName} <0-${templates.length - 1}>\`
+- To preview another template: \`node scripts/tweet-draft.mjs ${slug} <0-${templates.length - 1}>\`
 - Edit the copy above, then run: \`node scripts/tweet-post.mjs ${draftPath.replace(process.cwd() + '/', '')}\`
 `;
 
@@ -140,4 +101,4 @@ console.log('Next steps:');
 console.log(`  1. Edit the draft: ${draftPath.replace(process.cwd() + '/', '')}`);
 console.log(`  2. Post when ready: node scripts/tweet-post.mjs ${draftPath.replace(process.cwd() + '/', '')}`);
 console.log('');
-console.log(`Or try another template: node scripts/tweet-draft.mjs ${toolName} <0-${templates.length - 1}>`);
+console.log(`Or try another template: node scripts/tweet-draft.mjs ${slug} <0-${templates.length - 1}>`);
