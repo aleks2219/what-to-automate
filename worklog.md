@@ -386,3 +386,47 @@ Stage Summary:
 - The "What you do" section in each tool card makes it immediately clear whether the user is uploading, configuring, building visually, or writing code.
 - BLOCKED ON USER: (1) add MAILERLITE_API_KEY + MAILERLITE_GROUP_ID env vars on Vercel, (2) trigger redeploy, (3) test full v2.1 flow.
 - Test with the finance invoice example: should now recommend Lido/Nanonets as primary tool (upload-and-go) instead of Make + Claude API.
+
+---
+Task ID: 14
+Agent: main (Super Z)
+Task: Build the Tool Matcher — Tinder-style swipe deck for browsing tools.
+
+Work Log:
+- User wanted a "matching game like Tinder" where users fill out basics then swipe through tools that match their fit. Mobile-first, expandable knowledge.
+- Built src/app/api/match-deck/route.ts:
+  - POST endpoint takes whatToAutomate (required) + industry + currentTools (optional)
+  - Calls Groq with the full tool catalog (80+ tools including capabilities)
+  - Returns 5-8 matches with matchScore (0-100), whyItMatches (personalized), highlight (tagline)
+  - Validates all tool IDs against catalog (no hallucinations)
+  - Sorts by match score descending
+  - Filters out user's current tools
+- Built src/components/automation/swipe-deck.tsx — the centerpiece:
+  - Three phases: input form → loading → swiping
+  - Three-card stack with depth (next cards visible behind top card)
+  - Drag to swipe using framer-motion (drag='x', dragConstraints, dragElastic)
+  - Swipe threshold 100px → triggers 'left' or 'right' callback
+  - Tap card to flip between front (logo, match %, why it matches, key metrics) and back (full details: best for, what you do, capabilities, pros/cons, get-started CTA)
+  - Match % prominently displayed with color coding (emerald 85+, blue 70-84, stone <70)
+  - Heart/X animations appear on swipe (heart right, X left) with rotation
+  - Progress bar at top ("3 of 7")
+  - Match counter in header
+  - Action buttons below cards (pass X red, match Heart emerald)
+  - Mobile-first: large touch targets, 3/4 aspect ratio cards, max-w-md
+- Built src/components/automation/match-results.tsx — end screen:
+  - "You matched with X tools" hero
+  - Sorted list of matched tools with full details + try-it CTA
+  - Email capture (reuses /api/email-capture with source='matcher', matchedToolIds, matchedToolNames)
+  - Success state for email submission
+  - Cross-promo: "Get a full assessment" (links to assessment flow) + "Swipe again" (restart)
+- Built src/lib/tools-db-adapter.ts — re-exports TOOLS + INDUSTRIES for components that need both
+- Updated src/app/page.tsx — new view states 'matcher' and 'match-results', state for matched/passed tools arrays, handleMatcherStart + handleMatcherComplete handlers
+- Updated src/components/automation/landing.tsx — third CTA "Browse tools (swipe)" with Heart icon, emerald outline styling to differentiate from primary CTA
+- Lint passes clean. Committed (1f852b1). Pushed to GitHub.
+
+Stage Summary:
+- v4 Tool Matcher is on GitHub main (commit 1f852b1).
+- Two complementary flows now: deep assessment (existing) + browse/discover (new, lower friction).
+- BLOCKED ON USER: (1) trigger Vercel redeploy of all unpushed commits (v2, v2.1, v3 toolshed, v4 matcher), (2) test full flow on live site.
+- After deploy: test assessment flow (extraction → action plan → toolshed analysis → email capture) AND matcher flow (input → swipe deck → match results → email capture).
+- Once both flows verified working: post first tweet.
