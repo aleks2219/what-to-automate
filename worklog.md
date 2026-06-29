@@ -323,3 +323,24 @@ Stage Summary:
 - BLOCKED ON USER: (1) trigger Vercel redeploy, (2) test end-to-end on https://what-to-automate-dq1j.vercel.app, (3) optionally set up MailerLite for email capture.
 - After deploy: test by going through the AI-assisted flow with the finance invoice example. Should now see: verdict + ROI + chart + roadmap + risks + recommendation + Action Plan (tools, first step, budget, benchmarks) + Case Studies + Templates + Email Capture.
 - Email capture works in dev mode (returns success without actually subscribing) if MailerLite isn't configured. User can add MAILERLITE_API_KEY + MAILERLITE_GROUP_ID later for production email capture.
+
+---
+Task ID: 12
+Agent: main (Super Z)
+Task: Verify MailerLite integration with real credentials.
+
+Work Log:
+- User provided MailerLite API key (JWT) and group name "AutoScore Users". Group ID was not provided.
+- Used MailerLite API (GET /api/groups) with the user's key to fetch all groups. Found "AutoScore Users" with ID 191571646788666650, 0 active subscribers, created 2026-06-29 01:35:59.
+- Updated local /home/z/my-project/.env with MAILERLITE_API_KEY and MAILERLITE_GROUP_ID.
+- Tested /api/email-capture endpoint locally with test subscriber (test+autoscore@example.com, processName="Test invoice reconciliation", verdict="AUTOMATE NOW", annualSavings="$94K").
+- Response: {"success":true,"message":"Subscribed!...","email":"test+autoscore@example.com"}.
+- Verified via MailerLite API: subscriber appeared in group with status=active, source=api, subscribed_at timestamp matching the test.
+- Note: custom fields (autoscore_process, autoscore_verdict, autoscore_savings, signup_source) did NOT get saved because MailerLite requires you to create custom fields in the dashboard first. Subscriber is still added correctly — custom fields are optional for segmentation.
+- Deleted the test subscriber to keep the group clean for production launch.
+
+Stage Summary:
+- MailerLite integration is fully functional — subscribers get added to the "AutoScore Users" group when they opt in.
+- User needs to: (1) add 2 env vars on Vercel (MAILERLITE_API_KEY + MAILERLITE_GROUP_ID), (2) trigger redeploy, (3) test full v2 flow end-to-end.
+- Optional: user can create custom fields in MailerLite dashboard (Subscribers → Fields) named: autoscore_process, autoscore_verdict, autoscore_savings, signup_source. These will then be populated automatically and enable segmentation (e.g., "show me all AUTOMATE_NOW verdicts in finance industry").
+- After v2 verified working: post first tweet.
