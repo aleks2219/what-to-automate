@@ -162,3 +162,30 @@ Stage Summary:
 - No secrets were leaked to the repo. Local .env (with real Twitter creds) remains in sandbox only.
 - User has been instructed to immediately delete the PAT at https://github.com/settings/tokens.
 - Next step: user imports the repo into Vercel, sets 5 env vars, deploys. Then I update tweets/tools/autoscore.json with the production URL and we generate + post the first tweet.
+
+---
+Task ID: 6
+Agent: main (Super Z)
+Task: Verify Vercel deploy + prepare first tweet drafts.
+
+Work Log:
+- User reported Vercel URL: what-to-automate-dq1j-jr04fx42b-aleks2219s-projects.vercel.app
+- Verified URL with curl: site deploys successfully but redirects to Vercel login page. Cause: Vercel Authentication is enabled by default on Hobby tier projects. People clicking the tweet link would hit a login wall.
+- Tested alternate URLs:
+  - what-to-automate.vercel.app → 404 (not assigned by Vercel)
+  - what-to-automate-aleks2219s-projects.vercel.app → 200, but redirects to login (same auth issue)
+- Updated tweets/tools/autoscore.json URL to https://what-to-automate-aleks2219s-projects.vercel.app (cleaner production URL, no random hash).
+- Built scripts/tweet-preview-all.mjs — utility that prints all 5 tweet templates with full text + char counts so user can review and pick.
+- Generated all 5 tweet variants — all under 280 char limit:
+  - Option 0 (256 chars): leads with tagline question
+  - Option 1 (272 chars): hot-take opener "Most leaders automate the wrong things"
+  - Option 2 (258 chars): structured announcement with bullets
+  - Option 3 (278 chars): leads with example use case quote
+  - Option 4 (183 chars): short and punchy
+- Did NOT post any tweets — waiting for user to (a) disable Vercel Authentication so the link works for visitors, and (b) pick which template to post.
+
+Stage Summary:
+- Vercel deploy succeeded but site is behind Vercel Authentication — user needs to disable it in Project Settings → Deployment Protection → "Vercel Authentication" → set to "Disabled".
+- 5 tweet drafts ready to fire — user picks one, I run tweet-post.mjs to publish.
+- All tweet URLs use the production URL (without random hash).
+- BLOCKED ON USER: (1) disable Vercel Authentication, (2) pick a tweet option (0-4).
