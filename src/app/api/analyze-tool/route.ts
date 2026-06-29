@@ -54,9 +54,9 @@ export async function POST(req: NextRequest) {
   "verdictLabel": "string — use: high="${tool.verdictLabels.high}", medium="${tool.verdictLabels.medium}", low="${tool.verdictLabels.low}",
   "score": "number 0-100",
   "summary": "string — 2-3 sentence executive summary",
-  "keyInsights": ["array of 3-5 key insights"],
-  "recommendations": ["array of 2-4 specific recommendations"],
-  "actionItems": ["array of 1-3 things to do TODAY"],
+  "keyInsights": ["array of 3-5 key insights — each must reference the user's specific situation"],
+  "recommendations": ["array of 3-5 specific recommendations — NAME SPECIFIC TOOLS with pricing, include cost comparisons where relevant"],
+  "actionItems": ["array of 2-4 things to do TODAY — must be truly actionable: specific URL to visit, specific step to take, specific person to talk to. NOT 'consider your options' — instead 'Go to clerk.com, click Get Started, create a project, add the Clerk provider to your app'"],
   "risks": ["array of 1-3 risks or caveats"],
   "confidence": "high | medium | low"
 }
@@ -64,8 +64,11 @@ export async function POST(req: NextRequest) {
 RULES:
 1. Output ONLY valid JSON.
 2. Be specific — don't say "consider options" — say "Buy HubSpot at $45/mo because..."
-3. Reference the user's specific situation.
-4. Keep actionItems under 30 minutes each.`;
+3. Reference the user's specific situation in every insight.
+4. actionItems must be truly actionable: include specific URLs, specific steps, specific tools. Each should take under 30 minutes. Think "what would I literally do first if I were them?"
+5. recommendations must NAME SPECIFIC TOOLS with real pricing. Never say "a CRM tool" — say "HubSpot (free CRM forever, $890/mo for Marketing Hub Pro)".
+6. If recommending building, include estimated hours + cost.
+7. Include a cost comparison (3-year TCO) in at least one recommendation when relevant.`;
 
     // Inject knowledge base for build-vs-buy tool
     let knowledgeBaseSection = '';

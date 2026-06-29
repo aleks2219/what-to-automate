@@ -499,7 +499,7 @@ export function ToolEngine({ config, onBack }: ToolEngineProps) {
   );
 }
 
-// ============ EMAIL CAPTURE (inline for tool engine) ============
+// ============ EMAIL CAPTURE (inline for tool engine — optional, never blocks) ============
 function ToolEmailCapture({
   config,
   result,
@@ -540,43 +540,32 @@ function ToolEmailCapture({
   };
 
   return (
-    <Card
-      className="border-2 mb-6 print:hidden"
-      style={{ borderColor: `${config.iconColor}40`, backgroundColor: `${config.iconColor}05` }}
-    >
-      <CardContent className="p-6">
+    <Card className="border-stone-200 bg-stone-50/50 mb-6 print:hidden">
+      <CardContent className="p-5">
         {status === 'success' ? (
-          <div className="text-center py-2">
+          <div className="flex items-center gap-3 py-2">
             <div
-              className="w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3"
+              className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0"
               style={{ backgroundColor: `${config.iconColor}15` }}
             >
-              <Check className="w-6 h-6" style={{ color: config.iconColor }} />
+              <Check className="w-4 h-4" style={{ color: config.iconColor }} />
             </div>
-            <h3 className="text-base font-semibold text-stone-900 mb-1">You&apos;re in!</h3>
-            <p className="text-sm text-stone-600">
-              We&apos;ll notify you when we ship new tools. Check your inbox.
-            </p>
+            <div>
+              <div className="text-sm font-medium text-stone-900">You&apos;re subscribed!</div>
+              <div className="text-xs text-stone-500">
+                We&apos;ll notify you about new tools. No spam.
+              </div>
+            </div>
           </div>
         ) : (
           <>
-            <div className="flex items-center gap-2 mb-3">
-              <div
-                className="w-8 h-8 rounded-md flex items-center justify-center"
-                style={{ backgroundColor: config.iconColor }}
-              >
-                <Mail className="w-4 h-4 text-white" />
-              </div>
-              <div>
-                <h3 className="text-base font-semibold text-stone-900">
-                  Get notified about new tools
-                </h3>
-                <p className="text-xs text-stone-500">
-                  I ship free tools regularly. No spam, unsubscribe anytime.
-                </p>
-              </div>
+            <div className="flex items-center gap-2 mb-2">
+              <Mail className="w-4 h-4 text-stone-400" />
+              <span className="text-sm font-medium text-stone-700">
+                Want updates when I ship new tools?
+              </span>
             </div>
-            <form onSubmit={handleSubmit} className="flex flex-col sm:flex-row gap-2 mt-3">
+            <form onSubmit={handleSubmit} className="flex flex-col sm:flex-row gap-2">
               <Input
                 type="email"
                 value={email}
@@ -584,21 +573,23 @@ function ToolEmailCapture({
                   setEmail(e.target.value);
                   if (status === 'error') setStatus('idle');
                 }}
-                placeholder="you@company.com"
-                className="bg-white flex-1"
+                placeholder="you@company.com (optional)"
+                className="bg-white flex-1 h-9 text-sm"
                 disabled={status === 'loading'}
               />
               <Button
                 type="submit"
                 disabled={status === 'loading'}
-                style={{ backgroundColor: config.iconColor, borderColor: config.iconColor }}
+                variant="outline"
+                size="sm"
+                className="border-stone-300 text-stone-700"
               >
                 {status === 'loading' ? (
-                  <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
                 ) : (
                   <>
                     Subscribe
-                    <ArrowRight className="w-4 h-4 ml-1" />
+                    <ArrowRight className="w-3.5 h-3.5 ml-1" />
                   </>
                 )}
               </Button>
@@ -606,6 +597,9 @@ function ToolEmailCapture({
             {status === 'error' && (
               <p className="text-xs text-red-600 mt-1">{errorMessage}</p>
             )}
+            <p className="text-xs text-stone-400 mt-2">
+              Optional. I ship free tools regularly — no spam, unsubscribe anytime.
+            </p>
           </>
         )}
       </CardContent>

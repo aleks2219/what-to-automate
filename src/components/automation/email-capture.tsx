@@ -2,7 +2,16 @@
 
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Mail, FileText, Gift, Check, Loader2, Sparkles, ArrowRight, Download } from 'lucide-react';
+import {
+  Mail,
+  FileText,
+  Gift,
+  Check,
+  Loader2,
+  Sparkles,
+  ArrowRight,
+  Download,
+} from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -18,21 +27,50 @@ interface EmailCaptureProps {
 
 export function EmailCapture({ input, result, extraction }: EmailCaptureProps) {
   const [email, setEmail] = useState('');
-  const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
+  const [emailStatus, setEmailStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [errorMessage, setErrorMessage] = useState('');
   const [pdfDownloading, setPdfDownloading] = useState(false);
+  const [pdfDownloaded, setPdfDownloaded] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  // Download PDF directly — NO EMAIL REQUIRED
+  const handleDownloadPdf = async () => {
+    setPdfDownloading(true);
+    try {
+      const res = await fetch('/api/generate-report-pdf', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ input, result, extraction }),
+      });
+      if (!res.ok) throw new Error('Failed to generate PDF');
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      const processName = input.processName || 'process-assessment';
+      a.download = `autoscore-${processName.toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 40)}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      setPdfDownloaded(true);
+    } catch (err) {
+      console.error('PDF download error:', err);
+      setErrorMessage('Could not generate PDF. Try again.');
+    } finally {
+      setPdfDownloading(false);
+    }
+  };
+
+  // Optional email signup — never blocks the PDF
+  const handleEmailSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email.trim() || !email.includes('@')) {
       setErrorMessage('Please enter a valid email address.');
-      setStatus('error');
+      setEmailStatus('error');
       return;
     }
-
-    setStatus('loading');
+    setEmailStatus('loading');
     setErrorMessage('');
-
     try {
       const res = await fetch('/api/email-capture', {
         method: 'POST',
@@ -45,212 +83,139 @@ export function EmailCapture({ input, result, extraction }: EmailCaptureProps) {
           extraction,
         }),
       });
-
       if (!res.ok) {
         const err = await res.json().catch(() => ({ error: 'Failed to subscribe' }));
         throw new Error(err.error || 'Failed to subscribe');
       }
-
-      setStatus('success');
+      setEmailStatus('success');
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Unknown error';
       setErrorMessage(msg);
-      setStatus('error');
-    }
-  };
-
-  // Download PDF directly from the server
-  const handleDownloadPdf = async () => {
-    setPdfDownloading(true);
-    try {
-      const res = await fetch('/api/generate-report-pdf', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ input, result, extraction }),
-      });
-
-      if (!res.ok) {
-        throw new Error('Failed to generate PDF');
-      }
-
-      const blob = await res.blob();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      const processName = input.processName || 'process-assessment';
-      a.download = `autoscore-${processName.toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 40)}.pdf`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-    } catch (err) {
-      console.error('PDF download error:', err);
-      setErrorMessage('Could not generate PDF. Try the print option instead.');
-      setStatus('error');
-    } finally {
-      setPdfDownloading(false);
+      setEmailStatus('error');
     }
   };
 
   return (
-    <Card className="border-emerald-200 bg-gradient-to-br from-emerald-50/60 to-stone-50/40 print:hidden">
-      <CardContent className="p-6">
-        <AnimatePresence mode="wait">
-          {status === 'success' ? (
-            <motion.div
-              key="success"
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -8 }}
-              transition={{ duration: 0.3 }}
-            >
-              <div className="text-center py-4">
-                <div className="w-12 h-12 rounded-full bg-emerald-100 flex items-center justify-center mx-auto mb-3">
-                  <Check className="w-6 h-6 text-emerald-700" />
-                </div>
-                <h3 className="text-lg font-semibold text-stone-900 mb-2">
-                  You&apos;re subscribed!
-                </h3>
-                <p className="text-sm text-stone-600 mb-4 max-w-md mx-auto">
-                  We&apos;ve added you to the AutoScore newsletter.{' '}
-                  <span className="font-medium text-stone-900">{email}</span>
+    <div className="space-y-4">
+      {/* PDF Download — always available, no email required */}
+      <Card className="border-emerald-200 bg-gradient-to-br from-emerald-50/60 to-stone-50/40 print:hidden">
+        <CardContent className="p-6">
+          <div className="flex items-start gap-4">
+            <div className="w-12 h-12 rounded-lg bg-emerald-700 flex items-center justify-center flex-shrink-0">
+              <FileText className="w-6 h-6 text-white" />
+            </div>
+            <div className="flex-1">
+              <h3 className="text-base font-semibold text-stone-900 mb-1">
+                Download your full report PDF
+              </h3>
+              <p className="text-sm text-stone-600 mb-4">
+                Multi-page report with verdict, ROI, roadmap, tool recommendations, case studies, and assessment inputs. Formatted for sharing.
+              </p>
+              <Button
+                onClick={handleDownloadPdf}
+                disabled={pdfDownloading}
+                className="bg-emerald-700 hover:bg-emerald-800 text-white"
+              >
+                {pdfDownloading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-1.5 animate-spin" />
+                    Generating PDF...
+                  </>
+                ) : pdfDownloaded ? (
+                  <>
+                    <Check className="w-4 h-4 mr-1.5" />
+                    Downloaded — get another
+                  </>
+                ) : (
+                  <>
+                    <Download className="w-4 h-4 mr-1.5" />
+                    Download PDF report
+                  </>
+                )}
+              </Button>
+              {pdfDownloaded && (
+                <p className="text-xs text-emerald-700 mt-2">
+                  ✓ Check your downloads folder
                 </p>
+              )}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
-                {/* Direct PDF download — server-generated, styled report */}
-                <div className="bg-white/80 rounded-md p-4 max-w-sm mx-auto border border-emerald-200">
-                  <div className="text-sm font-semibold text-stone-900 mb-1">
-                    Download your full report PDF
-                  </div>
-                  <p className="text-xs text-stone-600 mb-3">
-                    Multi-page report with verdict, metrics, roadmap, tool recommendations, case studies, and assessment inputs.
-                  </p>
-                  <Button
-                    onClick={handleDownloadPdf}
-                    disabled={pdfDownloading}
-                    className="w-full bg-emerald-700 hover:bg-emerald-800 text-white"
-                  >
-                    {pdfDownloading ? (
-                      <>
-                        <Loader2 className="w-4 h-4 mr-1.5 animate-spin" />
-                        Generating PDF...
-                      </>
-                    ) : (
-                      <>
-                        <Download className="w-4 h-4 mr-1.5" />
-                        Download PDF report
-                      </>
-                    )}
-                  </Button>
-                </div>
-              </div>
-            </motion.div>
-          ) : (
-            <motion.div
-              key="form"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.2 }}
-            >
-              <div className="flex items-center gap-2 mb-3">
-                <div className="w-8 h-8 rounded-md bg-emerald-700 flex items-center justify-center">
-                  <Gift className="w-4 h-4 text-white" />
+      {/* Optional email signup — never blocks the PDF */}
+      <Card className="border-stone-200 bg-stone-50/50 print:hidden">
+        <CardContent className="p-5">
+          <AnimatePresence mode="wait">
+            {emailStatus === 'success' ? (
+              <motion.div
+                key="success"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="flex items-center gap-3 py-2"
+              >
+                <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center flex-shrink-0">
+                  <Check className="w-4 h-4 text-emerald-700" />
                 </div>
                 <div>
-                  <h3 className="text-base font-semibold text-stone-900">
-                    Get your full report as PDF
-                  </h3>
-                  <p className="text-xs text-stone-500">Free. No spam. Unsubscribe anytime.</p>
+                  <div className="text-sm font-medium text-stone-900">You&apos;re subscribed!</div>
+                  <div className="text-xs text-stone-500">
+                    We&apos;ll notify you about new tools. No spam.
+                  </div>
                 </div>
-              </div>
-
-              <div className="space-y-3 mb-4">
-                <Perk
-                  icon={FileText}
-                  title="Full report as PDF"
-                  description="Multi-page report with verdict, ROI, roadmap, tool recommendations, case studies — formatted for sharing."
-                />
-                <Perk
-                  icon={Sparkles}
-                  title="Industry automation playbook"
-                  description="20 automation ideas specific to your industry — only available via email."
-                />
-                <Perk
-                  icon={Mail}
-                  title="5-day email course"
-                  description="How to actually implement your first automation — one short email per day."
-                />
-              </div>
-
-              <form onSubmit={handleSubmit} className="space-y-2">
-                <Label htmlFor="email" className="sr-only">
-                  Email address
-                </Label>
-                <div className="flex flex-col sm:flex-row gap-2">
+              </motion.div>
+            ) : (
+              <motion.div
+                key="form"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+              >
+                <div className="flex items-center gap-2 mb-2">
+                  <Mail className="w-4 h-4 text-stone-400" />
+                  <span className="text-sm font-medium text-stone-700">
+                    Want updates when I ship new tools?
+                  </span>
+                </div>
+                <form onSubmit={handleEmailSubmit} className="flex flex-col sm:flex-row gap-2">
                   <Input
-                    id="email"
                     type="email"
                     value={email}
                     onChange={(e) => {
                       setEmail(e.target.value);
-                      if (status === 'error') setStatus('idle');
+                      if (emailStatus === 'error') setEmailStatus('idle');
                     }}
-                    placeholder="you@company.com"
-                    className="bg-white flex-1"
-                    disabled={status === 'loading'}
+                    placeholder="you@company.com (optional)"
+                    className="bg-white flex-1 h-9 text-sm"
+                    disabled={emailStatus === 'loading'}
                   />
                   <Button
                     type="submit"
-                    disabled={status === 'loading'}
-                    className="bg-emerald-700 hover:bg-emerald-800 text-white"
+                    disabled={emailStatus === 'loading'}
+                    variant="outline"
+                    size="sm"
+                    className="border-stone-300 text-stone-700"
                   >
-                    {status === 'loading' ? (
-                      <>
-                        <Loader2 className="w-4 h-4 mr-1 animate-spin" />
-                        Sending...
-                      </>
+                    {emailStatus === 'loading' ? (
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
                     ) : (
                       <>
-                        Get my report
-                        <ArrowRight className="w-4 h-4 ml-1" />
+                        Subscribe
+                        <ArrowRight className="w-3.5 h-3.5 ml-1" />
                       </>
                     )}
                   </Button>
-                </div>
-                {status === 'error' && (
+                </form>
+                {emailStatus === 'error' && (
                   <p className="text-xs text-red-600 mt-1">{errorMessage}</p>
                 )}
-              </form>
-
-              <p className="text-xs text-stone-500 mt-3 leading-relaxed">
-                Enter your email to get the full PDF report + playbook + 5-day course. You can also download the PDF directly after subscribing.
-              </p>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </CardContent>
-    </Card>
-  );
-}
-
-function Perk({
-  icon: Icon,
-  title,
-  description,
-}: {
-  icon: typeof FileText;
-  title: string;
-  description: string;
-}) {
-  return (
-    <div className="flex items-start gap-2.5">
-      <div className="w-7 h-7 rounded-md bg-emerald-100 flex items-center justify-center flex-shrink-0">
-        <Icon className="w-3.5 h-3.5 text-emerald-700" />
-      </div>
-      <div>
-        <div className="text-sm font-medium text-stone-900">{title}</div>
-        <div className="text-xs text-stone-600 leading-relaxed">{description}</div>
-      </div>
+                <p className="text-xs text-stone-400 mt-2">
+                  Optional. I ship free tools regularly — no spam, unsubscribe anytime.
+                </p>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </CardContent>
+      </Card>
     </div>
   );
 }
