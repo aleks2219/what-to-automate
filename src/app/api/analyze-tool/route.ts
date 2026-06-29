@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { groqChatCompletion } from '@/lib/llm';
 import { getToolBySlug, ToolAnalysisResult } from '@/lib/tools-registry';
 import { BUILD_SCENARIOS } from '@/lib/build-vs-buy-db';
+import { STARTUP_PATTERNS } from '@/lib/idea-validator-db';
 
 // Generic AI analysis endpoint for the Tool Engine.
 // Takes: { slug, input, fields: { industry, teamSize, etc. }, companyWebsite }
@@ -79,6 +80,14 @@ RULES:
       knowledgeBaseSection = `\n\n=== BUILD VS BUY KNOWLEDGE BASE (${BUILD_SCENARIOS.length} scenarios) ===\n${kbText}\n\nIf the user's description matches any pattern above, reference those specific alternatives with pricing. If no match, use your general knowledge of SaaS tools.`;
     }
 
+    // Inject knowledge base for startup idea validator
+    if (tool.slug === 'startup-idea-validator') {
+      const kbText = STARTUP_PATTERNS.map((p) =>
+        `- Pattern: "${p.pattern}" | Category: ${p.category} | Difficulty: ${p.difficulty} | Saturation: ${p.marketSaturation} | Capital: ${p.typicalCapitalNeeded} | Time to revenue: ${p.timeToRevenue} | Risks: ${p.keyRisks.join('; ')} | Success factors: ${p.successFactors.join('; ')} | Red flags: ${p.redFlags.join('; ')} | Examples: ${p.examples.join(', ')}`
+      ).join('\n');
+      knowledgeBaseSection = `\n\n=== STARTUP PATTERNS KNOWLEDGE BASE (${STARTUP_PATTERNS.length} patterns) ===\n${kbText}\n\nIf the user's idea matches any pattern above, reference the specific risks, success factors, and red flags for that pattern. Name specific competitors from the examples.`;
+    }
+
     const systemPrompt = `${tool.systemPrompt}${knowledgeBaseSection}\n\n${outputSchema}`;
 
     // 5. Build user message
@@ -90,7 +99,7 @@ RULES:
         { role: 'system', content: systemPrompt },
         { role: 'user', content: userMessage },
       ],
-      { json: true, temperature: tool.temperature ?? 0.3, maxTokens: tool.slug === 'build-vs-buy' ? 3000 : 2000 }
+      { json: true, temperature: tool.temperature ?? 0.3, maxTokens: (tool.slug === 'build-vs-buy' || tool.slug === 'startup-idea-validator') ? 3000 : 2000 }
     );
 
     if (!raw || !raw.trim()) {

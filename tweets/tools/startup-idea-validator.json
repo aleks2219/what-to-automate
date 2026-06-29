@@ -1,0 +1,21 @@
+{
+  "name": "Idea Validator",
+  "slug": "startup-idea-validator",
+  "url": "https://what-to-automate-dq1j.vercel.app/tools/startup-idea-validator",
+  "tagline": "Is your startup idea worth pursuing?",
+  "key_features": [
+    "10-dimension evaluation (problem, market, timing, competition, etc.)",
+    "14 startup patterns with real failure modes",
+    "Specific competitors named with what they do well",
+    "Brutally honest assessment, no sugar-coating",
+    "Actionable next steps for this week"
+  ],
+  "tweetTemplates": [
+    "I built a free tool that tells you if your startup idea is actually good. Describe it in one sentence. Get a brutally honest assessment across 10 dimensions. No sugar-coating. Try it: {url}",
+    "Stop wondering if your startup idea is worth pursuing. I built a free AI tool that evaluates it across market size, competition, execution risk, and 7 more dimensions. Try it: {url}",
+    "Most startup ideas fail for predictable reasons. I built a free tool that identifies those reasons before you waste a year. Describe your idea. Get honest feedback. {url}",
+    "Is your startup idea a winner or a time sink? Free AI tool evaluates it across 10 dimensions with specific competitors, risks, and next steps. No login: {url}"
+  ],
+  "audience": "Founders, aspiring entrepreneurs, side-project builders",
+  "tone": "builder-direct"
+}

@@ -222,25 +222,105 @@ If the user's scenario matches a knowledge base entry, reference the specific Sa
 };
 
 // ============================================================
-// TOOL 3: Startup Idea Validator (coming soon placeholder)
+// TOOL 3: Startup Idea Validator (live — knowledge-rich)
 // ============================================================
 const startupIdeaValidator: ToolConfig = {
   slug: 'startup-idea-validator',
   name: 'Idea Validator',
   tagline: 'Is your startup idea worth pursuing?',
   description:
-    'Describe your startup idea. Get an honest assessment of market size, competition, differentiation, and execution risk. No sugar-coating.',
+    'Describe your startup idea. Get an honest assessment across 10 dimensions: market size, competition, differentiation, execution risk, capital needed, time to revenue, and more. Includes a knowledge base of 14 startup patterns with real failure modes. No sugar-coating.',
   category: 'evaluator',
   icon: 'Lightbulb',
   iconColor: '#F59E0B',
-  status: 'coming-soon',
+  status: 'live',
   createdAt: '2026-06-29',
+  featured: true,
 
   inputLabel: 'Describe your startup idea',
-  inputPlaceholder: 'e.g., An app that uses AI to help restaurants predict demand and reduce food waste...',
-  inputHint: 'Be specific about the problem, solution, and target customer.',
+  inputPlaceholder: 'e.g., An AI tool that helps restaurants predict demand and reduce food waste by analyzing their POS data, weather patterns, and local events...',
+  inputHint: 'Be specific about the problem, solution, target customer, and how you make money. The more detail, the better the analysis.',
+  additionalFields: [
+    {
+      id: 'stage',
+      label: 'What stage are you at?',
+      type: 'select',
+      options: [
+        { value: 'idea', label: 'Just an idea' },
+        { value: 'research', label: 'Researching the market' },
+        { value: 'prototype', label: 'Building a prototype' },
+        { value: 'mvp', label: 'Have an MVP' },
+        { value: 'users', label: 'Have some users' },
+      ],
+      helpText: 'Where you are affects what advice is most useful.',
+    },
+    {
+      id: 'capital',
+      label: 'How much can you invest?',
+      type: 'select',
+      options: [
+        { value: 'bootstrap', label: 'Bootstrapping ($0-10K)' },
+        { value: 'small', label: 'Small savings ($10-50K)' },
+        { value: 'funded', label: 'Can raise ($50K-500K)' },
+        { value: 'vc', label: 'VC-backed ($500K+)' },
+      ],
+      helpText: 'Some ideas require more capital than others.',
+    },
+    {
+      id: 'timeCommitment',
+      label: 'Time commitment',
+      type: 'select',
+      options: [
+        { value: 'side', label: 'Side project (nights/weekends)' },
+        { value: 'full', label: 'Full-time' },
+        { value: 'team', label: 'Full-time team (2+ people)' },
+      ],
+    },
+  ],
 
-  systemPrompt: 'You are a startup advisor. Evaluate the idea honestly.',
+  systemPrompt: `You are a brutally honest startup advisor with 15+ years of experience. You've founded 3 companies (one exited, two failed), angel invested in 50+ startups, and mentored at Y Combinator. You've seen every type of idea and know why most fail.
+
+Your job is to evaluate the user's startup idea HONESTLY. No sugar-coating. No "that's a great idea!" if it's not. Founders deserve the truth before they spend years and savings on something doomed.
+
+You have access to a KNOWLEDGE BASE of 14 startup patterns. Each pattern includes:
+- Market saturation level (blue-ocean to oversaturated)
+- Typical capital needed
+- Time to revenue
+- Key risks specific to this type of startup
+- Success factors that separate winners from losers
+- Real examples of companies in this space
+- Red flags that predict failure
+
+EVALUATION FRAMEWORK — assess ALL 10 dimensions:
+
+1. PROBLEM: Is this a real, painful problem people will pay to solve? Or a "nice to have"?
+2. MARKET SIZE: Is the market big enough to build a real business? (> $100M TAM ideal)
+3. TIMING: Is now the right time? Too early = education cost. Too late = saturated.
+4. COMPETITION: Who else is doing this? What's the competitive moat?
+5. DIFFERENTIATION: Why would someone choose this over existing solutions?
+6. EXECUTION RISK: Can THIS team (based on what they told you) actually build this?
+7. CAPITAL FIT: Does the idea match their budget? (Can't bootstrap a fintech with $0)
+8. TIME TO REVENUE: How long until first dollar? Does their runway support it?
+9. DISTRIBUTION: How will they get customers? "Build it and they will come" is a lie.
+10. FAILURE MODES: What's the most likely way this fails? Be specific.
+
+OUTPUT REQUIREMENTS:
+- verdict: "high" = PURSUE IT (strong idea, good timing, manageable risk), "medium" = PIVOT FIRST (idea has potential but needs changes), "low" = RETHINK (fundamental problems that need addressing before proceeding)
+- score: 0-100 (higher = stronger idea)
+- summary: 2-3 sentences. Lead with the verdict and the ONE biggest reason.
+- keyInsights: 4-6 insights, each covering one of the 10 dimensions above. Be specific to their idea.
+- recommendations: 3-5 specific recommendations. If the idea matches a knowledge base pattern, reference the success factors and red flags. Include specific competitors to study and specific next steps to validate the idea.
+- actionItems: 2-4 things to do THIS WEEK. Not "research the market" but "interview 10 restaurant owners about how they currently handle demand forecasting. Find them via LinkedIn or walk into 10 restaurants."
+- risks: 2-4 specific risks. Not generic "competition" but "Toast and Square already have POS data and 100K+ restaurant customers. They can add AI forecasting in a sprint. Your moat is zero."
+- confidence: "high" | "medium" | "low"
+
+CRITICAL RULES:
+1. If the idea is an AI wrapper ("ChatGPT for X"), call it out. These are features, not businesses. Explain why and what would make it defensible.
+2. If the idea is a marketplace, explain the cold start problem and how they'll solve it.
+3. If the capital needed doesn't match their budget, flag it immediately.
+4. If they have no distribution plan, that's a bigger risk than the product itself.
+5. Reference specific competitors by name with what they do well.
+6. Be direct but constructive. Don't crush dreams, but don't waste their time either.`,
   temperature: 0.4,
 
   verdictLabels: {
@@ -250,12 +330,15 @@ const startupIdeaValidator: ToolConfig = {
   },
 
   tweetTemplates: [
-    'Is your startup idea actually good? I built a free tool that gives you an honest assessment — no sugar-coating. Try it: {url}',
+    'I built a free tool that tells you if your startup idea is actually good. Describe it in one sentence. Get a brutally honest assessment across 10 dimensions. No sugar-coating. Try it: {url}',
+    'Stop wondering if your startup idea is worth pursuing. I built a free AI tool that evaluates it across market size, competition, execution risk, and 7 more dimensions. Try it: {url}',
+    'Most startup ideas fail for predictable reasons. I built a free tool that identifies those reasons before you waste a year. Describe your idea. Get honest feedback. {url}',
+    'Is your startup idea a winner or a time sink? Free AI tool evaluates it across 10 dimensions with specific competitors, risks, and next steps. No login: {url}',
   ],
 
   emailSubject: 'Your startup idea validation report',
 
-  keywords: ['startup idea', 'idea validation', 'startup assessment'],
+  keywords: ['startup idea', 'idea validation', 'startup assessment', 'business idea', 'should I start'],
 };
 
 // ============================================================
