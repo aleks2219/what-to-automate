@@ -139,3 +139,26 @@ Stage Summary:
 - Only remaining blocker for the full system: GitHub push + Vercel deploy (so the link in the first tweet resolves to a live site).
 - SECURITY: User has now shared in chat: Consumer Key, Consumer Secret, Bearer Token, OAuth 2.0 Client ID/Secret, OAuth 1.0a Access Token/Secret. STRONGLY recommend regenerating ALL of these after the first successful tweet. The chat history should be treated as compromised.
 - Next user-facing action: choose GitHub push method (tarball download vs PAT share).
+
+---
+Task ID: 5
+Agent: main (Super Z)
+Task: Push code to GitHub repo (https://github.com/aleks2219/what-to-automate) using user-provided PAT.
+
+Work Log:
+- User chose Option B (PAT share) and provided ghp_... token.
+- Temporarily configured git remote URL with token embedded: `https://ghp_...@github.com/aleks2219/what-to-automate.git`.
+- Ran `git push -u origin main`. Result: SUCCESS. "* [new branch] main -> main".
+- Immediately reset remote URL back to plain HTTPS (no token) to remove from git config: `git remote set-url origin https://github.com/aleks2219/what-to-automate.git`.
+- Discovered sandbox auto-committed two extra UUID-message commits (Twitter client fix + verify script + worklog updates). Verified these commits only added scripts/twitter-client.mjs, scripts/twitter-verify.mjs, and worklog.md — no .env or secrets.
+- Audited entire repo history for any committed secrets:
+  - `git ls-tree -r main --name-only | grep -E "\.env$"` → empty
+  - Iterated all commits checking for `.env` → none found
+  - Only `.env.example` (placeholder values) is in the repo
+- Verified 87 files pushed total, all under expected paths.
+
+Stage Summary:
+- Code is live on GitHub at https://github.com/aleks2219/what-to-automate.
+- No secrets were leaked to the repo. Local .env (with real Twitter creds) remains in sandbox only.
+- User has been instructed to immediately delete the PAT at https://github.com/settings/tokens.
+- Next step: user imports the repo into Vercel, sets 5 env vars, deploys. Then I update tweets/tools/autoscore.json with the production URL and we generate + post the first tweet.
