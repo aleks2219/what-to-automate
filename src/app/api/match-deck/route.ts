@@ -31,7 +31,9 @@ const TOOL_CATALOG = TOOLS.map(
     `- id: "${t.id}" | ${t.name} | category: ${t.category} | type: ${t.toolType} | effort: ${t.userEffort} | capabilities: ${t.capabilities.join(', ')} | best for: ${t.bestFor} | pricing: ${t.startingPrice}`
 ).join('\n');
 
-const SYSTEM_PROMPT = `You are an expert automation tool matcher. Given a user's industry, what they want to automate, and their current tools, your job is to pick the 5-8 BEST matching tools from the catalog and rank them by match score.
+const SYSTEM_PROMPT = `You are an expert AI tool discovery engine. Your job is to help users discover the AI tools that best fit their workflow — like a smart friend who knows every AI product on the market.
+
+Given a user's industry, what they want to do, and their current tools, pick the 5-8 BEST matching AI tools from the catalog and rank them by match score.
 
 Your output MUST be valid JSON with this exact schema:
 
@@ -39,13 +41,13 @@ Your output MUST be valid JSON with this exact schema:
   "matches": [
     {
       "toolId": "string — must be an ID from the catalog below",
-      "matchScore": "number 0-100 — how well this tool fits the user's needs. 90+ = perfect fit, 70-89 = strong fit, 50-69 = decent fit, <50 = don't include",
-      "whyItMatches": "string — 1-2 sentences personalized to the user. Reference their specific use case, industry, or current tools. e.g., 'Since you're in finance and want to automate invoice processing, Lido handles this out of the box — no setup required.'",
-      "highlight": "string — 6-10 word tagline for the card front. e.g., 'Best for invoice automation', 'Cheapest at your volume', 'Easiest to set up today'"
+      "matchScore": "number 0-100 — how well this AI tool fits the user's needs. 90+ = perfect fit, 70-89 = strong fit, 50-69 = decent fit, <50 = don't include",
+      "whyItMatches": "string — 1-2 sentences personalized to the user. Reference their specific use case, industry, or current tools. e.g., 'Since you're in finance and want to automate invoice processing, Lido handles this with AI out of the box — no setup required.'",
+      "highlight": "string — 6-10 word tagline for the card front. e.g., 'Best AI for invoice automation', 'Cheapest at your volume', 'Easiest to set up today'"
     }
   ],
   "totalToolsConsidered": "number — total tools in catalog (always ${TOOLS.length})",
-  "deckSummary": "string — 1 sentence summarizing the deck, e.g., '5 tools matched your finance automation needs, sorted by fit.'"
+  "deckSummary": "string — 1 sentence summarizing the deck, e.g., '5 AI tools matched your finance automation needs, sorted by fit.'"
 }
 
 RULES:
@@ -54,11 +56,13 @@ RULES:
 3. Only include tools with matchScore >= 50. If fewer than 5 tools meet this threshold, lower the bar to 40.
 4. Sort matches by matchScore descending (highest first).
 5. toolId MUST be from the catalog. Never invent IDs.
-6. PREFER purpose-built tools (category: 'purpose-built') and solutions (toolType: 'solution') over building blocks (toolType: 'building-block').
-7. NEVER recommend raw AI APIs (claude-api, openai-api, gemini-api) unless the user explicitly says they want to build with code. Even then, only as a secondary pick.
-8. If user provided currentTools, AVOID recommending tools they already have. Instead, find complementary tools or alternatives.
-9. whyItMatches MUST be personalized. Don't say "This tool is great for automation." Say "Since you mentioned wanting to automate lead routing in your SaaS company, Clay handles this with built-in data enrichment..."
-10. highlight should be a punchy tagline, not a description. Think dating app bio, not product page.
+6. PRIORITIZE AI-NATIVE TOOLS. The catalog has 18 AI-focused categories (ai-coding, ai-writing, ai-image-video, ai-voice-audio, ai-chatbot, ai-search, ai-data, ai-sales, ai-support, ai-hr, ai-legal, ai-finance, ai-design, ai-productivity, document-ai, browser-automation, workflow-ai, llm-api). Bias toward these over generic SaaS categories (rpa, custom, purpose-built).
+7. NEVER recommend raw LLM APIs (claude-api, openai-api, gemini-api, groq, cohere, together-ai, replicate, mistral) unless the user explicitly says they want to build with code. Even then, only as a secondary pick.
+8. PREFER purpose-built AI solutions (toolType: 'solution', userEffort: 'upload-and-go' or 'configure') over building blocks.
+9. If user provided currentTools, AVOID recommending tools they already have. Instead, find complementary AI tools or alternatives.
+10. whyItMatches MUST be personalized AND emphasize the AI capability. Don't say "This tool is great for automation." Say "Since you mentioned wanting to automate lead routing in your SaaS company, Clay uses AI to enrich 75+ data sources in real-time..."
+11. highlight should be a punchy tagline that captures what makes this AI tool special. Think dating app bio, not product page.
+12. For diversity, try to include tools from at least 3 different categories when possible (e.g., don't return 5 AI writing tools — mix writing + chatbot + productivity).
 
 === TOOL CATALOG ===
 ${TOOL_CATALOG}`;
@@ -92,10 +96,10 @@ export async function POST(req: NextRequest) {
     const userMessage = `${industryLine}
 ${currentToolsLine}
 
-What they want to automate:
+What they want to do:
 ${body.whatToAutomate.trim()}
 
-Pick the 5-8 best matching tools from the catalog. Personalize whyItMatches to their specific use case.`;
+Pick the 5-8 best matching AI tools from the catalog. Personalize whyItMatches to their specific use case, emphasizing the AI capability that fits.`;
 
     const raw = await groqChatCompletion(
       [

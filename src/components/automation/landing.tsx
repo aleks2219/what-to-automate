@@ -58,35 +58,36 @@ export function Landing({ onStart, onManual, onMatcher }: LandingProps) {
             >
               <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-50 text-emerald-800 text-xs font-medium mb-6 border border-emerald-100">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-600" />
-                Built for senior leadership
+                125+ AI tools · Free · No login
               </div>
               <h1 className="text-4xl md:text-5xl lg:text-6xl font-semibold tracking-tight text-stone-900 leading-[1.05] mb-6">
-                Should you{' '}
-                <span className="text-emerald-700">automate</span> that process?
+                Find the{' '}
+                <span className="text-emerald-700">AI tools</span> that
+                actually fit your work
               </h1>
               <p className="text-lg text-stone-600 leading-relaxed mb-8 max-w-xl">
-                Describe a process in one sentence — or paste an SOP, or just talk.
-                Our AI extracts the details and gives you a verdict, ROI, payback,
-                risks, and a rollout roadmap you can paste into a board memo.
+                Tell us what you want to do. Swipe through a personalized deck of
+                AI tools — match scores, real pros/cons, and direct links to try them.
+                Or run a full assessment on a specific process for ROI + roadmap.
               </p>
               <div className="flex flex-col sm:flex-row gap-3">
                 <Button
                   size="lg"
-                  onClick={onStart}
+                  onClick={onMatcher}
                   className="bg-emerald-700 hover:bg-emerald-800 text-white h-12 px-7 text-base"
                 >
-                  <Sparkles className="w-4 h-4 mr-1.5" />
-                  Try the AI-assisted way
+                  <Heart className="w-4 h-4 mr-1.5" />
+                  Swipe through AI tools
                   <ArrowRight className="w-4 h-4 ml-1" />
                 </Button>
                 <Button
                   size="lg"
                   variant="outline"
-                  onClick={onMatcher}
+                  onClick={onStart}
                   className="border-emerald-300 text-emerald-800 hover:bg-emerald-50 h-12 px-7 text-base"
                 >
-                  <Heart className="w-4 h-4 mr-1.5" />
-                  Browse tools (swipe)
+                  <Sparkles className="w-4 h-4 mr-1.5" />
+                  Full assessment
                 </Button>
                 <Button
                   size="lg"
@@ -114,9 +115,9 @@ export function Landing({ onStart, onManual, onMatcher }: LandingProps) {
               </div>
 
               <div className="mt-10 grid grid-cols-3 gap-6">
-                <Stat value="< 1 min" label="Time to input" />
-                <Stat value="3 ways" label="Describe, paste, or talk" />
-                <Stat value="12+" label="Decision factors" />
+                <Stat value="125+" label="AI tools curated" />
+                <Stat value="< 1 min" label="To your matches" />
+                <Stat value="Free" label="No login required" />
               </div>
             </motion.div>
 
@@ -139,28 +140,27 @@ export function Landing({ onStart, onManual, onMatcher }: LandingProps) {
               How it works
             </h2>
             <p className="text-stone-600 max-w-2xl mx-auto">
-              Three steps. No technical setup. Output that respects a leader&apos;s
-              time.
+              Three steps. Swipe through AI tools, save the ones you love, get links to try them.
             </p>
           </div>
           <div className="grid md:grid-cols-3 gap-6">
             <Step
               icon={Sparkles}
               step="01"
-              title="Describe, paste, or talk"
-              description="One sentence is enough. Or paste an SOP, or record a 30-second voice memo. The AI does the heavy lifting."
+              title="Tell us what you want to do"
+              description="One sentence is enough. 'Write marketing copy', 'generate product images', 'transcribe meetings' — anything you'd want an AI tool for."
             />
             <Step
-              icon={Building2}
+              icon={Heart}
               step="02"
-              title="Confirm what AI extracted"
-              description="Quickly review the fields. Tap anything that&apos;s off. Most should be right — you don&apos;t type, you confirm."
+              title="Swipe through AI tool matches"
+              description="Get 5-8 personalized AI tools with match scores. Swipe right on the ones you want to try, left on the ones you don't."
             />
             <Step
               icon={FileText}
               step="03"
-              title="Get a decision-ready report"
-              description="Verdict, payback, ROI, strategic value, risks, and a phased roadmap. Export to PDF and share."
+              title="Save your matches + try them"
+              description="Email yourself the list with direct links to try each tool. Or run a full assessment for ROI + roadmap."
             />
           </div>
         </div>
