@@ -121,3 +121,21 @@ Stage Summary:
   3. Import the GitHub repo into Vercel (sign in with GitHub, click "Add New Project", select "what-to-automate", add env vars, deploy)
   4. After deploy: update `NEXT_PUBLIC_SITE_URL` in Vercel env vars to the production URL, update `tweets/tools/autoscore.json` url field to match
 - Once unblocked: run `node scripts/tweet-draft.mjs autoscore`, edit draft, run `node scripts/tweet-post.mjs <draft>` to post first tweet.
+
+---
+Task ID: 4
+Agent: main (Super Z)
+Task: Verify Twitter API credentials after user provided Access Token + Access Token Secret.
+
+Work Log:
+- User provided OAuth 1.0a Access Token (2063459925469151232-h8wJbQhXnjw31y7D8aYOx4ycUUuSvW) and Access Token Secret. Format matched expected pattern (user ID + dash + token, 40-char secret).
+- Wrote credentials to /home/z/my-project/.env (chmod 600). Verified .gitignore excludes .env — will not be committed.
+- Fixed import bug in scripts/twitter-client.mjs: `import TwitterApi from 'twitter-api-v2'` was failing with "TwitterApi is not a constructor". Changed to `import { TwitterApi } from 'twitter-api-v2'` (named import).
+- Built scripts/twitter-verify.mjs — read-only credential check that calls v2.me() to confirm OAuth 1.0a User Context is working. No tweets are posted.
+- Ran verification script: SUCCESS. Account is @sodbotter (User ID 2063459925469151232), 5 followers, 1 existing tweet. App has Read+Write permissions confirmed.
+
+Stage Summary:
+- Twitter API pipeline is fully functional — credentials work, both tweet-draft and tweet-post scripts are ready to fire.
+- Only remaining blocker for the full system: GitHub push + Vercel deploy (so the link in the first tweet resolves to a live site).
+- SECURITY: User has now shared in chat: Consumer Key, Consumer Secret, Bearer Token, OAuth 2.0 Client ID/Secret, OAuth 1.0a Access Token/Secret. STRONGLY recommend regenerating ALL of these after the first successful tweet. The chat history should be treated as compromised.
+- Next user-facing action: choose GitHub push method (tarball download vs PAT share).

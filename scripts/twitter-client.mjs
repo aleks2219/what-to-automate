@@ -1,7 +1,7 @@
 // Shared Twitter API client for tweet-draft and tweet-post scripts.
 // Uses OAuth 1.0a User Context (required for POST /2/tweets).
 
-import TwitterApi from 'twitter-api-v2';
+import { TwitterApi } from 'twitter-api-v2';
 import fs from 'node:fs';
 import path from 'node:path';
 
