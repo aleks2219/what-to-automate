@@ -77,10 +77,11 @@ if (!tweetText.trim()) {
   process.exit(1);
 }
 
-// Final length check
-const length = [...tweetText].length;
-if (length > 280) {
-  console.error(`Tweet is ${length} characters. X limit is 280. Edit the draft and try again.`);
+// Final length check — X counts URLs as 23 chars (t.co wrapping)
+const urlPattern = /https?:\/\/\S+/g;
+const xWeightedLength = tweetText.replace(urlPattern, 'x'.repeat(23)).length;
+if (xWeightedLength > 280) {
+  console.error(`Tweet is ${xWeightedLength} X-weighted characters (raw: ${[...tweetText].length}). X limit is 280. Edit the draft and try again.`);
   process.exit(1);
 }
 
@@ -92,7 +93,7 @@ console.log('');
 console.log(tweetText);
 console.log('');
 console.log('━'.repeat(60));
-console.log(`Characters: ${length} / 280`);
+console.log(`Characters: ${xWeightedLength} / 280 (X-weighted, URLs count as 23)`);
 console.log(`Tool: ${frontmatter.tool_name || '(unknown)'}`);
 console.log('');
 
