@@ -9,12 +9,16 @@ import {
   Sparkles,
   Heart,
   Wrench,
+  Clock,
+  Trash2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { TOOL_REGISTRY, getLiveTools } from '@/lib/tools-registry';
 import { useRouter } from 'next/navigation';
+import { useState, useEffect } from 'react';
+import { getHistory, clearHistory, HistoryItem, decodeResult } from '@/lib/shareable-results';
 
 const ICONS: Record<string, typeof Zap> = {
   Zap,
@@ -31,6 +35,23 @@ export function ToolHub({ onAutoScore }: ToolHubProps) {
   const router = useRouter();
   const liveTools = getLiveTools();
   const comingSoon = TOOL_REGISTRY.filter((t) => t.status === 'coming-soon');
+  const [history, setHistory] = useState<HistoryItem[]>([]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setHistory(getHistory()), 0);
+    return () => clearTimeout(timer);
+  }, []);
+
+  const handleClearHistory = () => {
+    clearHistory();
+    setHistory([]);
+  };
+
+  const handleOpenHistoryItem = (item: HistoryItem) => {
+    const encoded = btoa(unescape(encodeURIComponent(JSON.stringify(item.data))))
+      .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+    router.push(`/r/${encoded}`);
+  };
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -198,6 +219,72 @@ export function ToolHub({ onAutoScore }: ToolHubProps) {
               );
             })}
           </div>
+
+          {/* History (only show if user has past assessments) */}
+          {history.length > 0 && (
+            <motion.div
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4, delay: 0.4 }}
+              className="max-w-5xl mx-auto mt-12"
+            >
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2">
+                  <Clock className="w-4 h-4 text-stone-500" />
+                  <h2 className="text-sm font-semibold text-stone-700 uppercase tracking-wider">
+                    Your recent assessments
+                  </h2>
+                </div>
+                <button
+                  onClick={handleClearHistory}
+                  className="text-xs text-stone-400 hover:text-red-500 flex items-center gap-1 transition-colors"
+                >
+                  <Trash2 className="w-3 h-3" />
+                  Clear
+                </button>
+              </div>
+              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-3">
+                {history.slice(0, 6).map((item) => (
+                  <Card
+                    key={item.id}
+                    className="border-stone-200 hover:border-emerald-300 transition-all cursor-pointer group"
+                    onClick={() => handleOpenHistoryItem(item)}
+                  >
+                    <CardContent className="p-4">
+                      <div className="flex items-start justify-between gap-2 mb-2">
+                        <div className="text-xs font-medium text-stone-400">
+                          {item.toolName}
+                        </div>
+                        <div className="text-xs text-stone-400">
+                          {new Date(item.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                        </div>
+                      </div>
+                      <div className="text-sm font-medium text-stone-900 line-clamp-2 mb-2">
+                        {item.processName}
+                      </div>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <Badge
+                          variant="outline"
+                          className={`text-xs ${
+                            item.verdict === 'AUTOMATE_NOW' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
+                            item.verdict === 'PILOT_FIRST' ? 'bg-amber-50 text-amber-700 border-amber-200' :
+                            'bg-stone-50 text-stone-700 border-stone-200'
+                          }`}
+                        >
+                          {item.verdictLabel}
+                        </Badge>
+                        {item.annualSavings && item.annualSavings > 0 && (
+                          <span className="text-xs text-stone-500">
+                            {item.annualSavings >= 1000 ? `$${(item.annualSavings / 1000).toFixed(0)}K/yr` : `$${Math.round(item.annualSavings)}/yr`}
+                          </span>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </motion.div>
+          )}
 
           {/* Newsletter signup */}
           <motion.div

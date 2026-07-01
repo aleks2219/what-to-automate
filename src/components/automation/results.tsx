@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import {
   TrendingUp,
@@ -15,6 +16,9 @@ import {
   CheckCircle2,
   Calendar,
   ArrowRight,
+  Share2,
+  Check,
+  Link2,
 } from 'lucide-react';
 import {
   ResponsiveContainer,
@@ -35,6 +39,7 @@ import { CaseStudiesSection } from '@/components/automation/case-studies-section
 import { TemplatesSection } from '@/components/automation/templates-section';
 import { EmailCapture } from '@/components/automation/email-capture';
 import { ToolshedAnalysis } from '@/components/automation/toolshed-analysis';
+import { getShareUrl, saveToHistory } from '@/lib/shareable-results';
 
 interface ResultsProps {
   input: AssessmentInput;
@@ -73,6 +78,8 @@ const VERDICT_STYLES = {
 export function Results({ input, result, extraction, onRestart }: ResultsProps) {
   const styles = VERDICT_STYLES[result.verdict];
   const VerdictIcon = styles.icon;
+  const [shareUrl, setShareUrl] = useState<string | null>(null);
+  const [shareCopied, setShareCopied] = useState(false);
   const verdictLabel =
     result.verdict === 'AUTOMATE_NOW'
       ? 'AUTOMATE NOW'
@@ -97,6 +104,70 @@ export function Results({ input, result, extraction, onRestart }: ResultsProps) 
     window.print();
   };
 
+  // Save to localStorage history on mount
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      saveToHistory({
+        toolName: 'AutoScore',
+        toolSlug: 'automation-evaluator',
+        processName: input.processName || 'Process assessment',
+        verdict: result.verdict,
+        verdictLabel,
+        score: result.riskAdjustedScore,
+        annualSavings: result.annualCostSavings,
+        createdAt: new Date().toISOString(),
+        data: { input, result, extraction, toolName: 'AutoScore', createdAt: new Date().toISOString() },
+      });
+    }, 0);
+    return () => clearTimeout(timer);
+  }, []);
+
+  const handleShare = async () => {
+    const url = getShareUrl({
+      input,
+      result,
+      extraction,
+      toolName: 'AutoScore',
+      createdAt: new Date().toISOString(),
+    });
+    if (!url) return;
+    setShareUrl(url);
+
+    // Try Web Share API (mobile), fallback to clipboard
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: `AutoScore: ${input.processName || 'Assessment'}`,
+          text: `Check out this automation assessment: ${verdictLabel} with ${formatCurrency(result.annualCostSavings)} potential savings.`,
+          url,
+        });
+      } catch {
+        // User cancelled share, copy to clipboard instead
+        await copyToClipboard(url);
+      }
+    } else {
+      await copyToClipboard(url);
+    }
+  };
+
+  const copyToClipboard = async (url: string) => {
+    try {
+      await navigator.clipboard.writeText(url);
+      setShareCopied(true);
+      setTimeout(() => setShareCopied(false), 3000);
+    } catch {
+      // Fallback for older browsers
+      const textarea = document.createElement('textarea');
+      textarea.value = url;
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textarea);
+      setShareCopied(true);
+      setTimeout(() => setShareCopied(false), 3000);
+    }
+  };
+
   return (
     <div className="min-h-screen flex flex-col bg-stone-50/30">
       {/* Screen-only header (hidden in print) */}
@@ -111,11 +182,28 @@ export function Results({ input, result, extraction, onRestart }: ResultsProps) 
           <div className="flex items-center gap-2">
             <Button
               variant="outline"
+              onClick={handleShare}
+              className="text-stone-700 border-stone-300 hover:bg-stone-50"
+            >
+              {shareCopied ? (
+                <>
+                  <Check className="w-4 h-4 mr-1.5 text-emerald-600" />
+                  Copied!
+                </>
+              ) : (
+                <>
+                  <Share2 className="w-4 h-4 mr-1.5" />
+                  Share
+                </>
+              )}
+            </Button>
+            <Button
+              variant="outline"
               onClick={onRestart}
               className="text-stone-700 border-stone-300 hover:bg-stone-50"
             >
               <RefreshCw className="w-4 h-4 mr-1.5" />
-              New assessment
+              New
             </Button>
             <Button
               onClick={handleExportPDF}
