@@ -13,6 +13,7 @@ import {
   Sparkles,
   Heart,
   Layers,
+  Eye,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -22,9 +23,10 @@ interface LandingProps {
   onManual: () => void;
   onMatcher: () => void;
   onStack: () => void;
+  onSpy: () => void;
 }
 
-export function Landing({ onStart, onManual, onMatcher, onStack }: LandingProps) {
+export function Landing({ onStart, onManual, onMatcher, onStack, onSpy }: LandingProps) {
   return (
     <div className="min-h-screen flex flex-col">
       {/* Header */}
@@ -103,6 +105,15 @@ export function Landing({ onStart, onManual, onMatcher, onStack }: LandingProps)
                   </Button>
                 </div>
                 <div className="flex flex-col sm:flex-row gap-3">
+                  <Button
+                    size="lg"
+                    variant="outline"
+                    onClick={onSpy}
+                    className="border-red-300 text-red-700 hover:bg-red-50 h-12 px-5 text-sm flex-1"
+                  >
+                    <Eye className="w-4 h-4 mr-1.5" />
+                    Spy on competitor AI stack
+                  </Button>
                   <Button
                     size="lg"
                     variant="outline"
