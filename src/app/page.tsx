@@ -8,6 +8,7 @@ import { QuickInput } from '@/components/automation/quick-input';
 import { ConfirmExtracted } from '@/components/automation/confirm-extracted';
 import { SwipeDeck } from '@/components/automation/swipe-deck';
 import { MatchResults } from '@/components/automation/match-results';
+import { StackAnalyzer } from '@/components/automation/stack-analyzer';
 import { ToolHub } from '@/components/tool-engine/tool-hub';
 import {
   AssessmentInput,
@@ -26,7 +27,8 @@ type View =
   | 'wizard'
   | 'results'
   | 'matcher'
-  | 'match-results';
+  | 'match-results'
+  | 'stack';
 
 export default function Home() {
   const [view, setView] = useState<View>('hub');
@@ -97,6 +99,11 @@ export default function Home() {
     setView('landing');
   };
 
+  const handleStackStart = () => {
+    setView('stack');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
   if (view === 'quick-input') {
     return (
       <QuickInput
@@ -154,6 +161,10 @@ export default function Home() {
     );
   }
 
+  if (view === 'stack') {
+    return <StackAnalyzer onBack={handleRestart} />;
+  }
+
   if (view === 'hub') {
     return <ToolHub onAutoScore={handleAutoScore} />;
   }
@@ -163,6 +174,7 @@ export default function Home() {
       onStart={handleQuickStart}
       onManual={handleManualStart}
       onMatcher={handleMatcherStart}
+      onStack={handleStackStart}
     />
   );
 }

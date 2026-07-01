@@ -12,6 +12,7 @@ import {
   LineChart,
   Sparkles,
   Heart,
+  Layers,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -20,9 +21,10 @@ interface LandingProps {
   onStart: () => void;
   onManual: () => void;
   onMatcher: () => void;
+  onStack: () => void;
 }
 
-export function Landing({ onStart, onManual, onMatcher }: LandingProps) {
+export function Landing({ onStart, onManual, onMatcher, onStack }: LandingProps) {
   return (
     <div className="min-h-screen flex flex-col">
       {/* Header */}
@@ -90,6 +92,17 @@ export function Landing({ onStart, onManual, onMatcher }: LandingProps) {
                     <Sparkles className="w-4 h-4 mr-1.5" />
                     Full assessment
                   </Button>
+                  <Button
+                    size="lg"
+                    variant="outline"
+                    onClick={onStack}
+                    className="border-emerald-300 text-emerald-800 hover:bg-emerald-50 h-12 px-5 text-sm flex-1"
+                  >
+                    <Layers className="w-4 h-4 mr-1.5" />
+                    Analyze company stack
+                  </Button>
+                </div>
+                <div className="flex flex-col sm:flex-row gap-3">
                   <Button
                     size="lg"
                     variant="outline"
